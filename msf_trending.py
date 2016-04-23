@@ -109,7 +109,7 @@ def get_obs_table(start, stop, msf):
     return t
 
 def one_shot_plot(ref_data, msd_data, label=None, min_dwell_time=1000, outdir='.'):
-    fig = plt.figure(figsize=(7, 5))
+    fig = plt.figure(figsize=(5, 3.5))
     ref_data = ref_data[(ref_data['timestop'] - ref_data['time']) >= min_dwell_time]
     msd_data = msd_data[(msd_data['timestop'] - msd_data['time']) >= min_dwell_time]
     plt.plot(ref_data['manvr_angle'], ref_data['one_shot'], 'b+', markersize=5, markeredgewidth=.8,
@@ -123,7 +123,7 @@ def one_shot_plot(ref_data, msd_data, label=None, min_dwell_time=1000, outdir='.
     plt.ylabel('One Shot (arcsec)')
     plt.xlabel('Manvr Angle (deg)')
     plt.legend(loc='upper left', fontsize=10, numpoints=1, handletextpad=0)
-    plt.title('One Shot Magnitude ({})'.format(label), fontsize=12)
+    plt.title('One Shot Magnitude ({})'.format(label), fontsize=12, y=1.05)
     plt.tight_layout()
     plt.savefig(os.path.join(outdir, 'one_shot_vs_angle.png'))
 
@@ -135,15 +135,15 @@ def att_err_time_plots(ref_data, msd_data, min_dwell_time=1000, outdir='.'):
         default_ylims = [0, 1.1]
         if ax == 'roll':
             default_ylims = [0, 8]
-        fig = plt.figure(figsize=(7, 5))
-        ax1 = fig.add_axes([.1, .55, .8, .37])
+        fig = plt.figure(figsize=(5, 3.5))
+        ax1 = fig.add_axes([.15, .55, .8, .37])
         plot_cxctime(ref_data['time'], ref_data['{}_err'.format(ax)], 'b+', markersize=5,
                      alpha=.5,
                      label='MSF ENAB')
         plt.ylabel('MSF Enabled\n{} err (arcsec)'.format(ax))
         plt.grid()
         plt.margins(x=.1, y=.25)
-        ax2 = fig.add_axes([.1, .1, .8, .37])
+        ax2 = fig.add_axes([.15, .1, .8, .37])
         plot_cxctime(msd_data['time'], msd_data['{}_err'.format(ax)], 'rx', markersize=5,
                      label='MSF DISA')
         plt.suptitle('90th percentile {} error magnitude (per obs)'.format(ax, i),
@@ -155,6 +155,10 @@ def att_err_time_plots(ref_data, msd_data, min_dwell_time=1000, outdir='.'):
         setlims = plt.ylim(np.min([ylims[0], default_ylims[0]]), np.max([ylims[1], default_ylims[1]]))
         ax1.set_ylim(setlims)
         plt.setp(ax1.get_xticklabels(), visible=True)
+        plt.setp(ax1.get_xticklabels(), fontsize=7)
+        plt.setp(ax2.get_xticklabels(), fontsize=7)
+        plt.setp(ax1.get_yticklabels(), fontsize=7)
+        plt.setp(ax2.get_yticklabels(), fontsize=7)
         plt.setp(ax1.get_xticklabels(), rotation=0)
         plt.setp(ax1.get_xticklabels(), horizontalalignment='center')
         plt.savefig(os.path.join(outdir, '{}_err_vs_time.png'.format(ax)))
@@ -164,12 +168,12 @@ def att_err_hist(ref_data, msd_data, label=None, min_dwell_time=1000, outdir='.'
     ref_data = ref_data[(ref_data['timestop'] - ref_data['time']) >= min_dwell_time]
     msd_data = msd_data[(msd_data['timestop'] - msd_data['time']) >= min_dwell_time]
     for i, ax in enumerate(['roll', 'point'], 1):
-        fig = plt.figure(figsize=(9, 3.5))
+        fig = plt.figure(figsize=(5, 3.5))
         lim = 1.1
         if ax == 'roll':
             lim = 8
         bins = np.arange(0, lim + .1, .1)
-        ax1 = plt.subplot(1, 2, 1)
+        ax1 = plt.subplot(1, 1, 1)
         h1 = plt.hist(ref_data['{}_err'.format(ax)], bins=bins, log=True, color='b',
                       alpha=.4, label='MSF ENAB')
         plt.margins(y=.4)
@@ -185,32 +189,13 @@ def att_err_hist(ref_data, msd_data, label=None, min_dwell_time=1000, outdir='.'
              tl.set_color('b')
         for tl in ax1p5.get_yticklabels():
             tl.set_color('r')
-        plt.ylabel('MSF N obs (total {})'.format(len(msd_data)), color='r', rotation=270)
+        plt.ylabel('MSF N obs (total {})'.format(len(msd_data)), color='r', rotation=270,
+                   labelpad=10)
         plt.legend(p1 + p2, l1 + l2, loc='upper right', fontsize=8)
-
-        ax2 = fig.add_axes([.62, .55, .38, .36])
-        plot_cxctime(ref_data['time'], ref_data['{}_err'.format(ax)], 'b+', markersize=5,
-                     alpha=.5,
-                     label='MSF ENAB')
-        plt.ylabel('MSF Enabled\n{} err (arcsec)'.format(ax))
-        plt.grid()
-        plt.margins(x=.1, y=.25)
-        ax2p5 = fig.add_axes([.62, .1, .38, .36])
-        plot_cxctime(msd_data['time'], msd_data['{}_err'.format(ax)], 'rx', markersize=5,
-                     alpha=.5,
-                     label='MSF DISA')
-        plt.suptitle('90th percentile {} error magnitude (per obs)'.format(ax, i),
-                     fontsize=12)
-        plt.grid()
-        plt.ylabel('MSF Disabled\n{} err (arcsec)'.format(ax))
-        plt.margins(x=.1, y=.25)
-        ylims = plt.ylim()
-        setlims = plt.ylim(np.min([ylims[0], 0]), np.max([ylims[1], lim]))
-        ax2.set_ylim(setlims)
-        plt.setp(ax2.get_xticklabels(), visible=True)
-        plt.setp(ax2.get_xticklabels(), rotation=0)
-        plt.setp(ax2.get_xticklabels(), horizontalalignment='center')
-        plt.savefig(os.path.join(outdir, '{}_err_compare.png'.format(ax)))
+        plt.title('90th percentile {} error magnitude (per obs)'.format(ax, i),
+                  fontsize=12)
+        plt.subplots_adjust(left=.14, right=.87)
+        plt.savefig(os.path.join(outdir, '{}_err_hist.png'.format(ax)))
 
 
 def update(datadir, outdir):
@@ -240,7 +225,7 @@ def update(datadir, outdir):
 
     one_shot_plot(ref_data, msd_data, 'Reference set and Recent data', outdir=outdir)
     att_err_time_plots(ref_data, msd_data, outdir=outdir)
-    att_err_plots(ref_data, msd_data, outdir=outdir)
+    att_err_hist(ref_data, msd_data, outdir=outdir)
 
 
 if __name__ == '__main__':
