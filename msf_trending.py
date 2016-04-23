@@ -22,9 +22,9 @@ def get_options():
     parser = argparse.ArgumentParser(
         description="Update plots tracking errors on MSF observations")
     parser.add_argument("--outdir",
-                        default='.')
+                        default='/proj/sot/ska/www/ASPECT/msf_trending/')
     parser.add_argument("--datadir",
-                        default='.')
+                        default='/proj/sot/ska/data/msf_trending/')
     opt = parser.parse_args()
     return opt
 
