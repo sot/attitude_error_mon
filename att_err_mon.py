@@ -169,29 +169,18 @@ def att_err_hist(ref_data, msd_data, label=None, min_dwell_time=1000, outdir='.'
     msd_data = msd_data[(msd_data['timestop'] - msd_data['time']) >= min_dwell_time]
     for i, ax in enumerate(['roll', 'point'], 1):
         fig = plt.figure(figsize=(5, 3.5))
-        lim = 1.1
+        bin_width = .05
+        lim = np.max([1.1, np.max(msd_data['point_err'])])
         if ax == 'roll':
-            lim = 8
-        bins = np.arange(0, lim + .1, .1)
-        ax1 = plt.subplot(1, 1, 1)
-        h1 = plt.hist(ref_data['{}_err'.format(ax)], bins=bins, log=True, color='b',
-                      alpha=.4, label='MSF ENAB')
-        plt.margins(y=.4)
-        plt.ylabel('N obs (total {})'.format(len(ref_data)), color='b')
-        ax1p5 = ax1.twinx()
-        h2 = plt.hist(msd_data['{}_err'.format(ax)], bins=bins, log=True, color='r',
-                      alpha=.4, label='MSF DISA')
-        plt.margins(y=0.4)
+            bin_width = .25
+            lim = np.max([8, np.max(msd_data['roll_err'])])
+        bins = np.arange(0, lim + bin_width, bin_width)
+        h1 = plt.hist(ref_data['{}_err'.format(ax)], bins=bins, log=True, normed=True, color='b',
+                      alpha=.4, label='MSF ENAB ({} obs)'.format(len(ref_data)))
+        h2 = plt.hist(msd_data['{}_err'.format(ax)], bins=bins, log=True, normed=True, color='r',
+                      alpha=.4, label='MSF DISA ({} obs)'.format(len(msd_data)))
         plt.xlabel('{} err (arcsec)'.format(ax))
-        p1, l1 = ax1.get_legend_handles_labels()
-        p2, l2 = ax1p5.get_legend_handles_labels()
-        for tl in ax1.get_yticklabels():
-             tl.set_color('b')
-        for tl in ax1p5.get_yticklabels():
-            tl.set_color('r')
-        plt.ylabel('MSF N obs (total {})'.format(len(msd_data)), color='r', rotation=270,
-                   labelpad=10)
-        plt.legend(p1 + p2, l1 + l2, loc='upper right', fontsize=8)
+        plt.legend(loc='upper right', fontsize=7)
         plt.title('90th percentile {} error magnitude (per obs)'.format(ax, i),
                   fontsize=12)
         plt.subplots_adjust(left=.14, right=.87)
