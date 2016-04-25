@@ -1,5 +1,5 @@
 # Set the task name
-TASK = msf_trending
+TASK = attitude_error_mon
 
 # Uncomment the correct choice indicating either SKA or TST flight environment
 # FLIGHT_ENV = SKA
@@ -12,7 +12,7 @@ TASK = msf_trending
 #  SHARE = calc_offset.pl
 #  DATA = CELMON_table.rdb ICRS_tables
 WEB = index.html
-SHARE = msf_trending.py
+SHARE = att_err_mon.py
 DATA = task_schedule.cfg msd_data.dat ref_obs_data.dat
 DOC = 
 
