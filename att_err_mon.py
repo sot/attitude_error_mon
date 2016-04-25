@@ -183,7 +183,7 @@ def att_err_hist(ref_data, msd_data, label=None, min_dwell_time=1000, outdir='.'
         plt.legend(loc='upper right', fontsize=7)
         plt.title('90th percentile {} error magnitude (per obs)'.format(ax, i),
                   fontsize=12)
-        plt.subplots_adjust(left=.14, right=.87)
+        plt.tight_layout()
         plt.savefig(os.path.join(outdir, '{}_err_hist.png'.format(ax)))
 
 
