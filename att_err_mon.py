@@ -53,7 +53,7 @@ def get_obs_table(start, stop, msf):
         #print obsid, d.start
         # for data earlier than the existence of the AOACIMSS msid,
         # the value can be assumed to be 'ENAB'
-        if d.manvr.kalman_start < '2015:240':
+        if d.manvr.kalman_start < '2015:252':
             obs['gui_ms'] = 'ENAB'
         elif len(aoacimss['dates']) and (d.stop > aoacimss['dates'][-1]):
             continue
