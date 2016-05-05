@@ -99,13 +99,15 @@ def get_obs_table(start, stop, msf):
             continue
 
         obs['roll_err'] = np.degrees(np.percentile(np.abs(all_err['roll_err'].vals), 90)) * 3600
+        obs['roll_err_99'] = np.degrees(np.percentile(np.abs(all_err['roll_err'].vals), 99)) * 3600
         point_err = np.sqrt((all_err['pitch_err'].vals ** 2) + (all_err['yaw_err'].vals ** 2))
         obs['point_err'] = np.degrees(np.percentile(point_err, 90)) * 3600
+        obs['point_err_99'] = np.degrees(np.percentile(point_err, 99)) * 3600
         obs_data.append(obs)
 
     t = Table(obs_data)['obsid', 'next_obsid', 'time', 'timestop', 'date', 'datestop',
                         'gui_ms', 'manvr_angle', 'one_shot',
-                        'roll_err', 'point_err']
+                        'roll_err', 'point_err', 'roll_err_99', 'point_err_99']
     return t
 
 def one_shot_plot(ref_data, msd_data, label=None, min_dwell_time=1000, outdir='.'):
@@ -162,6 +164,39 @@ def att_err_time_plots(ref_data, msd_data, min_dwell_time=1000, outdir='.'):
         plt.setp(ax1.get_xticklabels(), rotation=0)
         plt.setp(ax1.get_xticklabels(), horizontalalignment='center')
         plt.savefig(os.path.join(outdir, '{}_err_vs_time.png'.format(ax)))
+    for i, ax in enumerate(['roll', 'point'], 1):
+        default_ylims = [0, 1.1]
+        if ax == 'roll':
+            default_ylims = [0, 8]
+        fig = plt.figure(figsize=(5, 3.5))
+        ax1 = fig.add_axes([.15, .55, .8, .37])
+        plot_cxctime(ref_data['time'], ref_data['{}_err_99'.format(ax)], 'b+', markersize=5,
+                     alpha=.5,
+                     label='MSF ENAB')
+        plt.ylabel('MSF Enabled\n{} err (arcsec)'.format(ax))
+        plt.grid()
+        plt.margins(x=.1, y=.25)
+        ax2 = fig.add_axes([.15, .1, .8, .37])
+        plot_cxctime(msd_data['time'], msd_data['{}_err_99'.format(ax)], 'rx', markersize=5,
+                     label='MSF DISA')
+        plt.suptitle('99th percentile {} error magnitude (per obs)'.format(ax, i),
+              fontsize=12)
+        plt.grid()
+        plt.ylabel('MSF Disabled\n{} err (arcsec)'.format(ax))
+        plt.margins(x=.1, y=.25)
+        ylims = plt.ylim()
+        setlims = plt.ylim(np.min([ylims[0], default_ylims[0]]), np.max([ylims[1], default_ylims[1]]))
+        ax1.set_ylim(setlims)
+        plt.setp(ax1.get_xticklabels(), visible=True)
+        plt.setp(ax1.get_xticklabels(), fontsize=7)
+        plt.setp(ax2.get_xticklabels(), fontsize=7)
+        plt.setp(ax1.get_yticklabels(), fontsize=7)
+        plt.setp(ax2.get_yticklabels(), fontsize=7)
+        plt.setp(ax1.get_xticklabels(), rotation=0)
+        plt.setp(ax1.get_xticklabels(), horizontalalignment='center')
+        plt.savefig(os.path.join(outdir, '{}_err_vs_time_99.png'.format(ax)))
+
+
 
 
 def att_err_hist(ref_data, msd_data, label=None, min_dwell_time=1000, outdir='.'):
@@ -185,6 +220,25 @@ def att_err_hist(ref_data, msd_data, label=None, min_dwell_time=1000, outdir='.'
                   fontsize=12)
         plt.tight_layout()
         plt.savefig(os.path.join(outdir, '{}_err_hist.png'.format(ax)))
+    for i, ax in enumerate(['roll', 'point'], 1):
+        fig = plt.figure(figsize=(5, 3.5))
+        bin_width = .05
+        lim = np.max([1.1, np.max(msd_data['point_err_99'])])
+        if ax == 'roll':
+            bin_width = .25
+            lim = np.max([8, np.max(msd_data['roll_err_99'])])
+        bins = np.arange(0, lim + bin_width, bin_width)
+        h1 = plt.hist(ref_data['{}_err_99'.format(ax)], bins=bins, log=True, normed=True, color='b',
+                      alpha=.4, label='MSF ENAB ({} obs)'.format(len(ref_data)))
+        h2 = plt.hist(msd_data['{}_err_99'.format(ax)], bins=bins, log=True, normed=True, color='r',
+                      alpha=.4, label='MSF DISA ({} obs)'.format(len(msd_data)))
+        plt.xlabel('{} err (arcsec)'.format(ax))
+        plt.legend(loc='upper right', fontsize=7)
+        plt.title('99th percentile {} error magnitude (per obs)'.format(ax, i),
+                  fontsize=12)
+        plt.tight_layout()
+        plt.savefig(os.path.join(outdir, '{}_err_hist_99.png'.format(ax)))
+
 
 
 def update(datadir, outdir):
