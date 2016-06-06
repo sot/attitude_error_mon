@@ -98,9 +98,9 @@ def get_obs_table(start, stop, msf):
         if not len(all_err['roll_err'].vals):
             continue
 
-        obs['roll_err'] = np.degrees(np.percentile(np.abs(all_err['roll_err'].vals), 90)) * 3600
+        obs['roll_err'] = np.degrees(np.percentile(np.abs(all_err['roll_err'].vals), 99)) * 3600
         point_err = np.sqrt((all_err['pitch_err'].vals ** 2) + (all_err['yaw_err'].vals ** 2))
-        obs['point_err'] = np.degrees(np.percentile(point_err, 90)) * 3600
+        obs['point_err'] = np.degrees(np.percentile(point_err, 99)) * 3600
         obs_data.append(obs)
 
     t = Table(obs_data)['obsid', 'next_obsid', 'time', 'timestop', 'date', 'datestop',
@@ -132,9 +132,9 @@ def att_err_time_plots(ref_data, msd_data, min_dwell_time=1000, outdir='.'):
     ref_data = ref_data[(ref_data['timestop'] - ref_data['time']) >= min_dwell_time]
     msd_data = msd_data[(msd_data['timestop'] - msd_data['time']) >= min_dwell_time]
     for i, ax in enumerate(['roll', 'point'], 1):
-        default_ylims = [0, 1.1]
+        default_ylims = [0, 1.4]
         if ax == 'roll':
-            default_ylims = [0, 8]
+            default_ylims = [0, 12]
         fig = plt.figure(figsize=(5, 3.5))
         ax1 = fig.add_axes([.15, .55, .8, .37])
         plot_cxctime(ref_data['time'], ref_data['{}_err'.format(ax)], 'b+', markersize=5,
@@ -146,7 +146,7 @@ def att_err_time_plots(ref_data, msd_data, min_dwell_time=1000, outdir='.'):
         ax2 = fig.add_axes([.15, .1, .8, .37])
         plot_cxctime(msd_data['time'], msd_data['{}_err'.format(ax)], 'rx', markersize=5,
                      label='MSF DISA')
-        plt.suptitle('90th percentile {} error magnitude (per obs)'.format(ax, i),
+        plt.suptitle('99th percentile {} error magnitude (per obs)'.format(ax, i),
               fontsize=12)
         plt.grid()
         plt.ylabel('MSF Disabled\n{} err (arcsec)'.format(ax))
@@ -170,10 +170,10 @@ def att_err_hist(ref_data, msd_data, label=None, min_dwell_time=1000, outdir='.'
     for i, ax in enumerate(['roll', 'point'], 1):
         fig = plt.figure(figsize=(5, 3.5))
         bin_width = .05
-        lim = np.max([1.1, np.max(msd_data['point_err'])])
+        lim = np.max([1.4, np.max(msd_data['point_err'])])
         if ax == 'roll':
             bin_width = .25
-            lim = np.max([8, np.max(msd_data['roll_err'])])
+            lim = np.max([12, np.max(msd_data['roll_err'])])
         bins = np.arange(0, lim + bin_width, bin_width)
         h1 = plt.hist(ref_data['{}_err'.format(ax)], bins=bins, log=True, normed=True, color='b',
                       alpha=.4, label='MSF ENAB ({} obs)'.format(len(ref_data)))
@@ -181,7 +181,7 @@ def att_err_hist(ref_data, msd_data, label=None, min_dwell_time=1000, outdir='.'
                       alpha=.4, label='MSF DISA ({} obs)'.format(len(msd_data)))
         plt.xlabel('{} err (arcsec)'.format(ax))
         plt.legend(loc='upper right', fontsize=7)
-        plt.title('90th percentile {} error magnitude (per obs)'.format(ax, i),
+        plt.title('99th percentile {} error magnitude (per obs)'.format(ax, i),
                   fontsize=12)
         plt.tight_layout()
         plt.savefig(os.path.join(outdir, '{}_err_hist.png'.format(ax)))
