@@ -55,12 +55,12 @@ def get_obs_table(start, stop, msf):
         # the value can be assumed to be 'ENAB'
         if d.manvr.kalman_start < '2015:252':
             obs['gui_ms'] = 'ENAB'
-        elif len(aoacimss['dates']) and (d.stop > aoacimss['dates'][-1]):
+        elif len(aoacimss['times']) and (d.tstop > aoacimss['times'][-1]):
             continue
         else:
             mid_kalman = ((DateTime(d.manvr.kalman_start).secs
                             + DateTime(d.stop).secs) / 2)
-            kal_idx = (np.searchsorted(aoacimss['times'].secs,
+            kal_idx = (np.searchsorted(aoacimss['times'],
                                         mid_kalman))
             obs['gui_ms'] = aoacimss['values'][kal_idx]
 
