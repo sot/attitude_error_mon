@@ -212,6 +212,10 @@ def update(datadir, outdir):
 
     print msd_data[-1]['date']
 
+    # Filter known bad obsids (50702 test fire)
+    for obsid in [50702]:
+        msd_data = msd_data[msd_data['obsid'] != obsid]
+
     one_shot_plot(ref_data, msd_data, 'Reference set and Recent data', outdir=outdir)
     att_err_time_plots(ref_data, msd_data, outdir=outdir)
     att_err_hist(ref_data, msd_data, outdir=outdir)
