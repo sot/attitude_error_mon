@@ -119,7 +119,7 @@ def one_shot_plot(ref_data, msd_data, label=None, min_dwell_time=1000, outdir='.
              label='last dwell MSF DISA')
     plt.grid()
     plt.xlim(0, 185)
-    plt.ylim(-1, 90)
+    plt.ylim(ymin=0)
     plt.ylabel('One Shot (arcsec)')
     plt.xlabel('Manvr Angle (deg)')
     leg = plt.legend(loc='upper left', fontsize=8, numpoints=1, handletextpad=0)
