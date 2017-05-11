@@ -108,24 +108,18 @@ def get_obs_table(start, stop, msf):
                         'roll_err', 'point_err']
     return t
 
-def one_shot_plot(ref_data, msd_data, label=None, min_dwell_time=1000, outdir='.'):
-    fig = plt.figure(figsize=(5, 3.5))
-    ref_data = ref_data[(ref_data['timestop'] - ref_data['time']) >= min_dwell_time]
-    msd_data = msd_data[(msd_data['timestop'] - msd_data['time']) >= min_dwell_time]
-    plt.plot(ref_data['manvr_angle'], ref_data['one_shot'], 'b+', markersize=5, markeredgewidth=.8,
-             alpha=.4,
-             label='last dwell MSF ENAB')
-    plt.plot(msd_data['manvr_angle'], msd_data['one_shot'], 'rx', markersize=5, markeredgewidth=.8,
-             label='last dwell MSF DISA')
+def one_shot_plot(outdir='.'):
+    fig = plt.figure(figsize=(7, 4))
+    manvrs = events.manvrs.filter(start=(DateTime() - 365))
+    manvr_angle = np.array([m.angle for m in manvrs])
+    one_shot = np.array([m.one_shot for m in manvrs])
+    plt.plot(manvr_angle, one_shot, 'r+', markersize=5, markeredgewidth=.8)
     plt.grid()
     plt.xlim(0, 185)
     plt.ylim(ymin=0)
     plt.ylabel('One Shot (arcsec)')
     plt.xlabel('Manvr Angle (deg)')
-    leg = plt.legend(loc='upper left', fontsize=8, numpoints=1, handletextpad=0)
-    # make legend semi-transparent
-    leg.get_frame().set_alpha(0.5)
-    plt.title('One Shot Magnitude ({})'.format(label), fontsize=12, y=1.05)
+    plt.title('One Shot Magnitude', fontsize=12, y=1.05)
     plt.tight_layout()
     plt.savefig(os.path.join(outdir, 'one_shot_vs_angle.png'))
 
@@ -218,7 +212,7 @@ def update(datadir, outdir):
     for obsid in [50702]:
         msd_data = msd_data[msd_data['obsid'] != obsid]
 
-    one_shot_plot(ref_data, msd_data, 'Reference set and Recent data', outdir=outdir)
+    one_shot_plot(outdir=outdir)
     att_err_time_plots(ref_data, msd_data, outdir=outdir)
     att_err_hist(ref_data, msd_data, outdir=outdir)
 
