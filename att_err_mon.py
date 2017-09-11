@@ -212,8 +212,8 @@ def update(datadir, outdir):
 
     print msd_data[-1]['date']
 
-    # Filter known bad obsids (50702 test fire)
-    for obsid in [50702]:
+    # Filter known bad obsids (MUPS test fires)
+    for obsid in [50702, 49802]:
         msd_data = msd_data[msd_data['obsid'] != obsid]
 
     one_shot_plot(outdir=outdir)
