@@ -48,11 +48,9 @@ def get_obs_table(start, stop, msf):
         try:
             obsid = d.get_obsid()
         except ValueError:
-            continue
+            obsid = 0
         if obsid is None:
-            continue
-        if obsid == 0:
-            continue
+            obsid = 0
         #print obsid, d.start
         # for data earlier than the existence of the AOACIMSS msid,
         # the value can be assumed to be 'ENAB'
@@ -75,7 +73,10 @@ def get_obs_table(start, stop, msf):
         n = d.get_next()
         if not n:
             continue
-        obs['next_obsid'] = n.get_obsid()
+        try:
+            obs['next_obsid'] = n.get_obsid()
+        except ValueError:
+            obs['next_obsid'] = 0
 
         obs['date'] = d.manvr.kalman_start
         obs['datestop'] = d.stop
