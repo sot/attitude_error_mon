@@ -45,7 +45,10 @@ def get_obs_table(start, stop, msf):
     obs_data = []
     for d in dwells:
         obs = {}
-        obsid = d.get_obsid()
+        try:
+            obsid = d.get_obsid()
+        except ValueError:
+            continue
         if obsid is None:
             continue
         if obsid == 0:
