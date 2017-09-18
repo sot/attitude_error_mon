@@ -201,8 +201,11 @@ def update(datadir, outdir):
         print "Reading previous data from {}".format(data_file)
         last_data = Table.read(data_file, format='ascii')
         new_data = get_obs_table(last_data[-5]['date'], DateTime(), msf='DISA')
-        idx_obsid_old_data = np.flatnonzero(last_data['obsid'] == new_data[0]['obsid'])[0]
-        msd_data = vstack([last_data[0:idx_obsid_old_data], new_data])
+        if new_data['time'][0] > last_data['time'][-1]:
+            msd_data = vstack([last_data, new_data])
+        else:
+            idx_old_data = np.flatnonzero(last_data['time'] >= new_data['time'][0])[0]
+            msd_data = vstack([last_data[0:idx_old_data], new_data])
         msd_data.write(data_file, format='ascii')
         # but only use the last year for making these plots
         msd_data = msd_data[msd_data['date'] >= (DateTime() - 365).date]
