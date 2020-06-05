@@ -52,10 +52,6 @@ def get_obs_table(start, stop):
         if obsid is None:
             obsid = 0
 
-        # If there is no next maneuver, we're done as there's no interval percentiles
-        if m.get_next() is False:
-            break
-
         obs['obsid'] = obsid
         obs['date'] = m.start
         obs['time'] = DateTime(m.start).secs
@@ -63,7 +59,7 @@ def get_obs_table(start, stop):
         obs['one_shot'] = m.one_shot
         obs['one_shot_yaw'] = m.one_shot_yaw
         obs['one_shot_pitch'] = m.one_shot_pitch
-        obs['dwell_duration'] = DateTime(m.get_next().start).secs - DateTime(m.npnt_start).secs
+        obs['dwell_duration'] = DateTime(m.next_nman_start).secs - DateTime(m.npnt_start).secs
 
         all_err = {}
         for err_name, err_msid in zip(['roll_err', 'pitch_err', 'yaw_err'],
