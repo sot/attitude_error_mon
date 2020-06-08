@@ -76,7 +76,6 @@ def get_obs_table(start, stop):
                     err.remove_intervals(events.dumps)
                     events.tsc_moves.interval_pad = (0, 300)
                     err.remove_intervals(events.tsc_moves)
-                    err.remove_intervals(events.dark_cal_replicas)
                     err.remove_intervals(events.ltt_bads)
                 all_err[err_name] = err
             obs['roll_err'] = np.degrees(np.percentile(np.abs(all_err['roll_err'].vals), 99)) * 3600
