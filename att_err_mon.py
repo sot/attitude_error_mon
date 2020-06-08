@@ -167,11 +167,12 @@ def att_err_hist(ref_data, recent_data, label=None, min_dwell_time=1000, outdir=
 
     for i, ax in enumerate(['roll', 'point'], 1):
         plt.figure(figsize=(5, 3.5))
-        bin_width = .05
-        lim = np.max([1.4, np.max(recent_data['point_err'])])
         if ax == 'roll':
             bin_width = .25
-            lim = np.max([12, np.max(recent_data['roll_err'])])
+            lim = 15
+        else:
+            bin_width = .05
+            lim = 7.5
         bins = np.arange(0, lim + bin_width, bin_width)
         plt.hist(ref_data[f'{ax}_err'], bins=bins, log=True, normed=True, color='b',
                  alpha=.4, label=f'{d0_str} to {d1_str}')
@@ -205,7 +206,7 @@ def update_file_data(data_file, start, stop):
 
 
 def update(datadir, outdir, full_start, recent_start,
-           point_lim=20, roll_lim=40):
+           point_lim=7.5, roll_lim=15):
 
     ref_file = os.path.join(datadir, 'ref_obs_data.dat')
     ref_data = update_file_data(ref_file, full_start, DateTime())
