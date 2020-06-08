@@ -208,7 +208,7 @@ def update(datadir, outdir, full_start, recent_start,
            point_lim=20, roll_lim=40):
 
     ref_file = os.path.join(datadir, 'ref_obs_data.dat')
-    ref_data = update_file_data(ref_file, full_start, recent_start)
+    ref_data = update_file_data(ref_file, full_start, DateTime())
     data_file = os.path.join(datadir, 'recent_data.dat')
     recent_data = update_file_data(data_file, recent_start, DateTime())
 
@@ -253,4 +253,4 @@ if __name__ == '__main__':
         recent_start = DateTime(opt.recent_start)
 
     update(outdir=opt.outdir, datadir=opt.datadir,
-           full_start=recent_start - 365, recent_start=recent_start)
+           full_start=DateTime() - 365, recent_start=recent_start)
