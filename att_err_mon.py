@@ -28,7 +28,10 @@ def get_options():
                         default=".")
     parser.add_argument("--datadir",
                         default=".")
-    parser.add_argument("--recent-start")
+    parser.add_argument("--recent-start",
+                        help="Date to use as reference for highlighted/recent data," +
+                        " default is to highlight last 60 days")
+
     opt = parser.parse_args()
     return opt
 
