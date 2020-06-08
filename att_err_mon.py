@@ -64,26 +64,27 @@ def get_obs_table(start, stop):
         obs['one_shot_pitch'] = m.one_shot_pitch
         obs['dwell_duration'] = DateTime(m.next_nman_start).secs - DateTime(m.npnt_start).secs
 
-        all_err = {}
-        for err_name, err_msid in zip(['roll_err', 'pitch_err', 'yaw_err'],
-                                      ['AOATTER1', 'AOATTER2', 'AOATTER3']):
-            err = fetch.Msid(err_msid,
-                             DateTime(m.npnt_start).secs + 500,
-                             m.get_next().start)
-            events.dumps.interval_pad = (0, 300)
-            err.remove_intervals(events.dumps)
-            events.tsc_moves.interval_pad = (0, 300)
-            err.remove_intervals(events.tsc_moves)
-            err.remove_intervals(events.dark_cal_replicas)
-            if len(err.times):
-                err.remove_intervals(events.ltt_bads)
-            all_err[err_name] = err
-
-        if not len(all_err['roll_err'].vals):
-            continue
-        obs['roll_err'] = np.degrees(np.percentile(np.abs(all_err['roll_err'].vals), 99)) * 3600
-        point_err = np.sqrt((all_err['pitch_err'].vals ** 2) + (all_err['yaw_err'].vals ** 2))
-        obs['point_err'] = np.degrees(np.percentile(point_err, 99)) * 3600
+        try:
+            all_err = {}
+            for err_name, err_msid in zip(['roll_err', 'pitch_err', 'yaw_err'],
+                                          ['AOATTER1', 'AOATTER2', 'AOATTER3']):
+                err = fetch.Msid(err_msid,
+                                 DateTime(m.npnt_start).secs + 500,
+                                 m.next_nman_start)
+                if len(err.times):
+                    events.dumps.interval_pad = (0, 300)
+                    err.remove_intervals(events.dumps)
+                    events.tsc_moves.interval_pad = (0, 300)
+                    err.remove_intervals(events.tsc_moves)
+                    err.remove_intervals(events.dark_cal_replicas)
+                    err.remove_intervals(events.ltt_bads)
+                all_err[err_name] = err
+            obs['roll_err'] = np.degrees(np.percentile(np.abs(all_err['roll_err'].vals), 99)) * 3600
+            point_err = np.sqrt((all_err['pitch_err'].vals ** 2) + (all_err['yaw_err'].vals ** 2))
+            obs['point_err'] = np.degrees(np.percentile(point_err, 99)) * 3600
+        except IndexError:
+            obs['point_err'] = 999
+            obs['roll_err'] = 999
         obs_data.append(obs)
 
     return Table(obs_data)
