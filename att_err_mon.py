@@ -78,9 +78,21 @@ def get_obs_table(start, stop):
                     err.remove_intervals(events.tsc_moves)
                     err.remove_intervals(events.ltt_bads)
                 all_err[err_name] = err
-            obs['roll_err'] = np.degrees(np.percentile(np.abs(all_err['roll_err'].vals), 99)) * 3600
-            point_err = np.sqrt((all_err['pitch_err'].vals ** 2) + (all_err['yaw_err'].vals ** 2))
-            obs['point_err'] = np.degrees(np.percentile(point_err, 99)) * 3600
+
+            # If there are no samples left, that is not an error condition, and the
+            # attitude errors should just be counted as 0.
+            if len(all_err['roll_err'].vals) == 0:
+                obs['roll_err'] = 0
+                obs['point_err'] = 0
+            else:
+                obs['roll_err'] = np.degrees(
+                    np.percentile(np.abs(all_err['roll_err'].vals), 99)) * 3600
+                point_err = np.sqrt((all_err['pitch_err'].vals ** 2) +
+                                    (all_err['yaw_err'].vals ** 2))
+                obs['point_err'] = np.degrees(np.percentile(point_err, 99)) * 3600
+
+        # If there are issues indexing into the AOATTER data, that's an error condition
+        # that should just be captured by a large/bogus value.
         except IndexError:
             obs['point_err'] = 999
             obs['roll_err'] = 999
@@ -193,14 +205,13 @@ def update_file_data(data_file, start, stop):
         new_data = get_obs_table(last_data[-5]['date'], stop)
         if new_data['date'][0] > last_data['date'][-1]:
             data = vstack([last_data, new_data])
-            data.sort('date')
         else:
             idx_old_data = np.flatnonzero(last_data['date'] >= new_data['date'][0])[0]
             data = vstack([last_data[0:idx_old_data], new_data])
-            data.sort('date')
+        data = data[data['date'] >= start.date]
     else:
         data = get_obs_table(start, stop)
-        data.sort('date')
+    data.sort('date')
     data.write(data_file, format='ascii', overwrite=True)
     return data
 
@@ -208,10 +219,10 @@ def update_file_data(data_file, start, stop):
 def update(datadir, outdir, full_start, recent_start,
            point_lim=7.5, roll_lim=15):
 
-    ref_file = os.path.join(datadir, 'ref_obs_data.dat')
-    ref_data = update_file_data(ref_file, full_start, DateTime())
-    data_file = os.path.join(datadir, 'recent_data.dat')
-    recent_data = update_file_data(data_file, recent_start, DateTime())
+    data_file = os.path.join(datadir, 'data.dat')
+    dat = update_file_data(data_file, full_start, DateTime())
+    recent_data = dat[dat['time'] >= recent_start.secs]
+    ref_data = dat[dat['time'] < recent_start.secs]
 
     one_shot_plot(ref_data, recent_data, outdir=outdir)
 
@@ -254,4 +265,4 @@ if __name__ == '__main__':
         recent_start = DateTime(opt.recent_start)
 
     update(outdir=opt.outdir, datadir=opt.datadir,
-           full_start=DateTime() - 365, recent_start=recent_start)
+           full_start=recent_start - 365, recent_start=recent_start)
