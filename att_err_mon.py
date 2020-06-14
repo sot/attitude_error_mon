@@ -135,35 +135,26 @@ def att_err_time_plots(ref_data, recent_data, min_dwell_time=1000, outdir='.'):
     d2_str = recent_data['date'][0][0:8]
     d3_str = recent_data['date'][-1][0:8]
 
-    for i, ax in enumerate(['roll', 'point'], 1):
+    for i, ax, msid in zip([1, 2], ['roll', 'point'], ['abs(aoatter1)', 'rss(aoatter2,aoatter3)']):
         default_ylims = [0, 1.4]
         if ax == 'roll':
             default_ylims = [0, 12]
         fig = plt.figure(figsize=(5, 3.5))
-        ax1 = fig.add_axes([.15, .55, .8, .37])
         plot_cxctime(ref_data['time'], ref_data[f'{ax}_err'], 'b+', markersize=5,
-                     alpha=.5)
-        plt.ylabel(f'{d0_str} to {d1_str}\n{ax} err (arcsec)', fontsize=9)
+                     alpha=.5, label=f'{d0_str} to {d1_str}')
+        plot_cxctime(recent_data['time'], recent_data[f'{ax}_err'], 'rx', markersize=5,
+                     alpha=.5, label=f'{d2_str} to {d3_str}')
+        plt.margins(x=.05, y=.05)
+        plt.ylabel(f'{ax} err (arcsec)', fontsize=9)
+        plt.title(f'per obs 99th percentile {ax} err\n ({msid})',
+                  fontsize=12)
         plt.grid()
-        plt.margins(x=.1, y=.25)
-        ax2 = fig.add_axes([.15, .1, .8, .37])
-        plot_cxctime(recent_data['time'], recent_data[f'{ax}_err'], 'rx', markersize=5)
-        plt.suptitle(f'99th percentile {ax} error magnitude (per obs)',
-                     fontsize=12)
-        plt.grid()
-        plt.ylabel(f'{d2_str} to {d3_str}\n{ax} err (arcsec)', fontsize=9)
-        plt.margins(x=.1, y=.25)
         ylims = plt.ylim()
         setlims = plt.ylim(np.min([ylims[0], default_ylims[0]]),
                            np.max([ylims[1], default_ylims[1]]))
-        ax1.set_ylim(setlims)
-        plt.setp(ax1.get_xticklabels(), visible=True)
-        plt.setp(ax1.get_xticklabels(), fontsize=7)
-        plt.setp(ax2.get_xticklabels(), fontsize=7)
-        plt.setp(ax1.get_yticklabels(), fontsize=7)
-        plt.setp(ax2.get_yticklabels(), fontsize=7)
-        plt.setp(ax1.get_xticklabels(), rotation=0)
-        plt.setp(ax1.get_xticklabels(), horizontalalignment='center')
+        plt.ylim(setlims)
+        plt.xticks(fontsize=7)
+        plt.tight_layout()
         plt.savefig(os.path.join(outdir, f'{ax}_err_vs_time.png'))
 
 
@@ -177,7 +168,7 @@ def att_err_hist(ref_data, recent_data, label=None, min_dwell_time=1000, outdir=
     d2_str = recent_data['date'][0][0:8]
     d3_str = recent_data['date'][-1][0:8]
 
-    for i, ax in enumerate(['roll', 'point'], 1):
+    for i, ax, msid in zip([1, 2], ['roll', 'point'], ['abs(aoatter1)', 'rss(aoatter2, aoatter3)']):
         plt.figure(figsize=(5, 3.5))
         if ax == 'roll':
             bin_width = .25
@@ -192,8 +183,9 @@ def att_err_hist(ref_data, recent_data, label=None, min_dwell_time=1000, outdir=
                  alpha=.4, label=f'{d2_str} to {d3_str}')
         plt.xlabel(f'{ax} err (arcsec)')
         plt.legend(loc='upper right', fontsize=7)
-        plt.title(f'99th percentile {ax} error magnitude (per obs)',
+        plt.title(f'per obs 99th percentile {ax} err\n({msid})',
                   fontsize=12)
+        plt.grid()
         plt.tight_layout()
         plt.savefig(os.path.join(outdir, f'{ax}_err_hist.png'))
 
@@ -248,7 +240,7 @@ def update(datadir, outdir, full_start, recent_start,
 
     template_html = open(os.path.join(FILE_DIR, 'index_template.html')).read()
     template = jinja2.Template(template_html)
-    out_html = template.render(outliers=outliers)
+    out_html = template.render(outliers=outliers, one_shot_start=ref_data['date'][0])
     with open(os.path.join(opt.outdir, 'index.html'), 'w') as fh:
         fh.write(out_html)
 
