@@ -1,0 +1,54 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+  <head>
+    <title>One shots and attitude errors</title>
+    <link href="/mta/ASPECT/aspect.css" rel="stylesheet" type="text/css" media="all" />
+  </head>
+
+  <body>
+<!--#include virtual="/mta/ASPECT/header.html"-->
+    
+<h2>One shots and attitude errors</h2
+
+<h3>(Updated 
+<!--#CONFIG TIMEFMT="%x" --><!--#flastmod file="one_shot_vs_angle.png"-->)
+</h3>
+
+<br />
+
+<h3>One shots from {{ one_shot_start }}</h3>
+<img src="one_shot_vs_angle.png">
+<h3>Attitude errors (from AOATTER1,2,3) for dwells >= than 1ks.</h3>
+<P>Note that in addition to filtering on dwell duration (>= 1ks) these data have also been filtered to
+remove dumps, tsc moves, and intervals marked as ltt_bads.</P>
+
+<TABLE>
+<TR><TD><img src="roll_err_vs_time.png"></TD><TD><img src="roll_err_hist.png"></TD></TR>
+<TR><TD><img src="point_err_vs_time.png"></TD><TD><img src="point_err_hist.png"></TD></TR>
+</TABLE>
+
+
+<h2>Outlier observations with large roll or pointing errors</h2>
+<table border=1>
+  <tr><th>Date</th><th>obsid</th>
+    <th>point err<br/>(arcsec)</th>
+    <th>roll err<br/>(arcsec)</th>
+    <th>Comment</th></tr>
+  {% for row in outliers %}
+  <tr>
+    <td>{{row['date'][0:8]}}</td><td>{{row['obsid']}}</td>
+    <td>{{ "%.1f" % row['point_err']}}</td><td>{{ "%.1f" % row['roll_err']}}</td>
+    <td>{{row['comment']}}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+
+<P>Code to generate these plots at <A HREF="https://github.com/sot/attitude_error_mon">attitude_error_mon</A>.</P>
+
+
+<!--#include virtual="/mta/ASPECT/footer.html"--> 
+<!--footer end-->
+
+  </body>
+</html>
