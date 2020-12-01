@@ -177,9 +177,9 @@ def att_err_hist(ref_data, recent_data, label=None, min_dwell_time=1000, outdir=
             bin_width = .05
             lim = 7.5
         bins = np.arange(0, lim + bin_width, bin_width)
-        plt.hist(ref_data[f'{ax}_err'], bins=bins, log=True, normed=True, color='b',
+        plt.hist(ref_data[f'{ax}_err'], bins=bins, log=True, density=True, color='b',
                  alpha=.4, label=f'{d0_str} to {d1_str}')
-        plt.hist(recent_data[f'{ax}_err'], bins=bins, log=True, normed=True, color='r',
+        plt.hist(recent_data[f'{ax}_err'], bins=bins, log=True, density=True, color='r',
                  alpha=.4, label=f'{d2_str} to {d3_str}')
         plt.xlabel(f'{ax} err (arcsec)')
         plt.legend(loc='upper right', fontsize=7)
