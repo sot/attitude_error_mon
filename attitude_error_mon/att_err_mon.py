@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-
 import os
 import argparse
 import jinja2
@@ -16,6 +15,7 @@ from Ska.Matplotlib import plot_cxctime
 from Chandra.Time import DateTime
 from kadi import events
 from Ska.engarchive import fetch
+from cxotime import CxoTime
 
 
 FILE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -44,8 +44,9 @@ def get_obs_table(start, stop):
     :param stop: stop time for range
     :returns: astropy table of observation data
     """
-    manvrs = events.manvrs.filter(start=start, stop=stop, n_dwell__gte=1)
+    manvrs = events.manvrs.filter(start=start, stop=stop)
     obs_data = []
+    last_npnt_stop = None
     for m in manvrs:
         obs = {}
         try:
@@ -54,6 +55,16 @@ def get_obs_table(start, stop):
             obsid = 0
         if obsid is None:
             obsid = 0
+
+        if last_npnt_stop is not None and m.npnt_start is not None:
+            obs['nmm_time'] = CxoTime(m.npnt_start).secs - CxoTime(last_npnt_stop).secs
+        else:
+            obs['nmm_time'] = 0
+        if m.npnt_stop is not None:
+            last_npnt_stop = m.npnt_stop
+
+        if m.npnt_start is None or obs['nmm_time'] == 0:
+            continue
 
         obs['obsid'] = obsid
         obs['date'] = m.start
@@ -123,6 +134,21 @@ def one_shot_plot(ref_data, recent_data, outdir='.'):
     plt.legend(loc='upper left', fontsize=8)
     plt.tight_layout()
     plt.savefig(os.path.join(outdir, 'one_shot_vs_angle.png'))
+
+    plt.figure(figsize=(7, 4))
+    plt.plot(ref_data['nmm_time'], ref_data['one_shot'], 'b+',
+             markersize=5, markeredgewidth=1.0, alpha=.25, label=f'{d0_str} to {d1_str}')
+    plt.plot(recent_data['nmm_time'], recent_data['one_shot'], 'rx',
+             markersize=5, markeredgewidth=.8, label=f'{d2_str} to {d3_str}')
+    plt.grid()
+    plt.xlim(0, 4000)
+    plt.ylim(ymin=0)
+    plt.ylabel('One Shot (arcsec)')
+    plt.xlabel('Time in NMM (s)')
+    plt.title('One Shot Magnitude', fontsize=12, y=1.05)
+    plt.legend(loc='upper left', fontsize=8)
+    plt.tight_layout()
+    plt.savefig(os.path.join(outdir, 'one_shot_vs_nmmtime.png'))
 
 
 def att_err_time_plots(ref_data, recent_data, min_dwell_time=1000, outdir='.'):
@@ -238,14 +264,14 @@ def update(datadir, outdir, full_start, recent_start,
     att_err_time_plots(ref_data, recent_data, outdir=outdir)
     att_err_hist(ref_data, recent_data, outdir=outdir)
 
-    template_html = open(os.path.join(FILE_DIR, 'index_template.html')).read()
+    template_html = open(os.path.join(FILE_DIR, 'data', 'index_template.html')).read()
     template = jinja2.Template(template_html)
     out_html = template.render(outliers=outliers, one_shot_start=ref_data['date'][0])
-    with open(os.path.join(opt.outdir, 'index.html'), 'w') as fh:
+    with open(os.path.join(outdir, 'index.html'), 'w') as fh:
         fh.write(out_html)
 
 
-if __name__ == '__main__':
+def main(args=None):
     opt = get_options()
     if not os.path.exists(opt.outdir):
         os.makedirs(opt.outdir)
@@ -258,3 +284,7 @@ if __name__ == '__main__':
 
     update(outdir=opt.outdir, datadir=opt.datadir,
            full_start=recent_start - 365, recent_start=recent_start)
+
+
+if __name__ == '__main__':
+    main()

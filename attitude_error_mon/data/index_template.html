@@ -7,17 +7,20 @@
 
   <body>
 <!--#include virtual="/mta/ASPECT/header.html"-->
-    
+
 <h2>One shots and attitude errors</h2
 
-<h3>(Updated 
+<h3>(Updated
 <!--#CONFIG TIMEFMT="%x" --><!--#flastmod file="one_shot_vs_angle.png"-->)
 </h3>
 
 <br />
 
 <h3>One shots from {{ one_shot_start }}</h3>
-<img src="one_shot_vs_angle.png">
+<TABLE>
+<TR><TD><img src="one_shot_vs_angle.png"></TD><TD><img src="one_shot_vs_nmmtime.png"></TD></TR>
+</TABLE>
+
 <h3>Attitude errors (from AOATTER1,2,3) for dwells >= than 1ks.</h3>
 <P>Note that in addition to filtering on dwell duration (>= 1ks) these data have also been filtered to
 remove dumps, tsc moves, and intervals marked as ltt_bads.</P>
@@ -47,7 +50,7 @@ remove dumps, tsc moves, and intervals marked as ltt_bads.</P>
 <P>Code to generate these plots at <A HREF="https://github.com/sot/attitude_error_mon">attitude_error_mon</A>.</P>
 
 
-<!--#include virtual="/mta/ASPECT/footer.html"--> 
+<!--#include virtual="/mta/ASPECT/footer.html"-->
 <!--footer end-->
 
   </body>
