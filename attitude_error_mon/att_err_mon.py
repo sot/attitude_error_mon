@@ -326,7 +326,12 @@ def update(datadir, outdir, full_start, recent_start, point_lim=7.5, roll_lim=15
 
     template_html = (FILE_DIR / "data" / "index_template.html").read_text()
     template = jinja2.Template(template_html)
-    out_html = template.render(outliers=outliers, one_shot_start=ref_data["date"][0])
+    out_html = template.render(
+        outliers=outliers,
+        one_shot_start=ref_data["date"][0],
+        roll_lim=roll_lim,
+        point_lim=point_lim,
+    )
     with open(outdir / "index.html", "w") as fh:
         fh.write(out_html)
 
