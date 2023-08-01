@@ -333,7 +333,7 @@ def main(args=None):
 
     # Set start of time ranges for data
     if opt.recent_start is None:
-        recent_start = Cxotime.now() - 60 * u.day
+        recent_start = CxoTime.now() - 60 * u.day
     else:
         recent_start = CxoTime(opt.recent_start)
 
