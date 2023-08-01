@@ -1,23 +1,22 @@
 #!/usr/bin/env python
 
-import os
 import argparse
+import os
+
 import jinja2
-import numpy as np
 import matplotlib
+import numpy as np
 
 if __name__ == "__main__":
     matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-
-from astropy.table import Table, vstack, Column
 from astropy.io import ascii
-from Ska.Matplotlib import plot_cxctime
+from astropy.table import Column, Table, vstack
 from Chandra.Time import DateTime
+from cxotime import CxoTime
 from kadi import events
 from Ska.engarchive import fetch
-from cxotime import CxoTime
-
+from Ska.Matplotlib import plot_cxctime
 
 FILE_DIR = os.path.dirname(os.path.abspath(__file__))
 
