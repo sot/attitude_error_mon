@@ -139,7 +139,7 @@ def one_shot_plot(ref_data, recent_data, outdir="."):
         label=f"{d2_str} to {d3_str}",
     )
     plt.grid()
-    plt.xlim(0, 185)
+    plt.xlim(-5, 185)
     plt.ylim(ymin=0)
     plt.ylabel("One Shot (arcsec)")
     plt.xlabel("Manvr Angle (deg)")
