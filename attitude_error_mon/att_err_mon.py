@@ -2,6 +2,7 @@
 
 import argparse
 import os
+from pathlib import Path
 
 import astropy.units as u
 import jinja2
@@ -15,7 +16,7 @@ from cxotime import CxoTime
 from kadi import events
 from ska_matplotlib import plot_cxctime
 
-FILE_DIR = os.path.dirname(os.path.abspath(__file__))
+FILE_DIR = Path(__file__).parent
 
 
 def get_options():
@@ -301,7 +302,7 @@ def update(datadir, outdir, full_start, recent_start, point_lim=7.5, roll_lim=15
 
     comments_file = os.path.join(outdir, "comments.dat")
     if os.path.exists(comments_file):
-        comments = ascii.read(comments_file, Reader=ascii.FixedWidthTwoLine)
+        comments = Table.read(comments_file, format="ascii.fixed_width_two_line")
         # convert to a dict
         comments = {comment["obsid"]: comment["comment"] for comment in comments}
     else:
@@ -320,7 +321,7 @@ def update(datadir, outdir, full_start, recent_start, point_lim=7.5, roll_lim=15
     att_err_time_plots(ref_data, recent_data, outdir=outdir)
     att_err_hist(ref_data, recent_data, outdir=outdir)
 
-    template_html = open(os.path.join(FILE_DIR, "data", "index_template.html")).read()
+    template_html = (FILE_DIR / "data" / "index_template.html").read_text()
     template = jinja2.Template(template_html)
     out_html = template.render(outliers=outliers, one_shot_start=ref_data["date"][0])
     with open(os.path.join(outdir, "index.html"), "w") as fh:
