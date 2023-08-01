@@ -7,8 +7,7 @@ import jinja2
 import matplotlib
 import numpy as np
 
-if __name__ == "__main__":
-    matplotlib.use("Agg")
+
 import matplotlib.pyplot as plt
 from astropy.io import ascii
 from astropy.table import Column, Table, vstack
@@ -331,6 +330,7 @@ def update(datadir, outdir, full_start, recent_start, point_lim=7.5, roll_lim=15
 
 
 def main(args=None):
+    matplotlib.use("Agg")
     opt = get_options()
     if not os.path.exists(opt.outdir):
         os.makedirs(opt.outdir)
