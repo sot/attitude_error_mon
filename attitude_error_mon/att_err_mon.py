@@ -9,7 +9,6 @@ import jinja2
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-from astropy.io import ascii
 from astropy.table import Column, Table, vstack
 from cheta import fetch
 from cxotime import CxoTime
