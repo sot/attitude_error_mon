@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import argparse
-import os
 from pathlib import Path
 
 import astropy.units as u
@@ -151,7 +150,7 @@ def one_shot_plot(ref_data, recent_data, outdir="."):
     plt.title("One shot size vs. manvr angle", fontsize=12, y=1.05)
     plt.legend(loc="upper left", fontsize=8)
     plt.tight_layout()
-    plt.savefig(os.path.join(outdir, "one_shot_vs_angle.png"))
+    plt.savefig(outdir / "one_shot_vs_angle.png")
 
     plt.figure(figsize=(7, 4))
     plt.plot(
@@ -179,7 +178,7 @@ def one_shot_plot(ref_data, recent_data, outdir="."):
     plt.title("One shot size vs. NMM time", fontsize=12, y=1.05)
     plt.legend(loc="upper left", fontsize=8)
     plt.tight_layout()
-    plt.savefig(os.path.join(outdir, "one_shot_vs_nmmtime.png"))
+    plt.savefig(outdir / "one_shot_vs_nmmtime.png")
 
 
 def att_err_time_plots(ref_data, recent_data, min_dwell_time=1000, outdir="."):
@@ -226,7 +225,7 @@ def att_err_time_plots(ref_data, recent_data, min_dwell_time=1000, outdir="."):
         plt.ylim(setlims)
         plt.xticks(fontsize=7)
         plt.tight_layout()
-        plt.savefig(os.path.join(outdir, f"{ax}_err_vs_time.png"))
+        plt.savefig(outdir / f"{ax}_err_vs_time.png")
 
 
 def att_err_hist(ref_data, recent_data, label=None, min_dwell_time=1000, outdir="."):
@@ -273,11 +272,11 @@ def att_err_hist(ref_data, recent_data, label=None, min_dwell_time=1000, outdir=
         plt.title(f"per obs 99th percentile {ax} err\n({msid})", fontsize=12)
         plt.grid()
         plt.tight_layout()
-        plt.savefig(os.path.join(outdir, f"{ax}_err_hist.png"))
+        plt.savefig(outdir / f"{ax}_err_hist.png")
 
 
 def update_file_data(data_file, start, stop):
-    if os.path.exists(data_file):
+    if data_file.exists():
         print(f"Reading previous data from {data_file}")
         last_data = Table.read(data_file, format="ascii")
         new_data = get_obs_table(last_data[-5]["date"], stop)
@@ -295,15 +294,17 @@ def update_file_data(data_file, start, stop):
 
 
 def update(datadir, outdir, full_start, recent_start, point_lim=7.5, roll_lim=15):
-    data_file = os.path.join(datadir, "data.dat")
+    outdir.mkdir(parents=True, exist_ok=True)
+    datadir.mkdir(parents=True, exist_ok=True)
+    data_file = datadir / "data.dat"
     dat = update_file_data(data_file, full_start, CxoTime.now())
     recent_data = dat[dat["time"] >= recent_start.secs]
     ref_data = dat[dat["time"] < recent_start.secs]
 
     one_shot_plot(ref_data, recent_data, outdir=outdir)
 
-    comments_file = os.path.join(outdir, "comments.dat")
-    if os.path.exists(comments_file):
+    comments_file = outdir / "comments.dat"
+    if comments_file.exists():
         comments = Table.read(comments_file, format="ascii.fixed_width_two_line")
         # convert to a dict
         comments = {comment["obsid"]: comment["comment"] for comment in comments}
@@ -326,15 +327,13 @@ def update(datadir, outdir, full_start, recent_start, point_lim=7.5, roll_lim=15
     template_html = (FILE_DIR / "data" / "index_template.html").read_text()
     template = jinja2.Template(template_html)
     out_html = template.render(outliers=outliers, one_shot_start=ref_data["date"][0])
-    with open(os.path.join(outdir, "index.html"), "w") as fh:
+    with open(outdir / "index.html", "w") as fh:
         fh.write(out_html)
 
 
 def main(args=None):
     matplotlib.use("Agg")
     opt = get_options().parse_args(args)
-    if not os.path.exists(opt.outdir):
-        os.makedirs(opt.outdir)
 
     # Set start of time ranges for data
     if opt.recent_start is None:
@@ -346,9 +345,9 @@ def main(args=None):
         fetch.data_source.set("maude allow_subset=False")
 
     update(
-        outdir=opt.outdir,
-        datadir=opt.datadir,
-        full_start=recent_start - 365,
+        outdir=Path(opt.outdir),
+        datadir=Path(opt.datadir),
+        full_start=recent_start - 365 * u.day,
         recent_start=recent_start,
     )
 
