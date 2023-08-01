@@ -3,19 +3,17 @@
 import argparse
 import os
 
+import astropy.units as u
 import jinja2
 import matplotlib
-import numpy as np
-
-
 import matplotlib.pyplot as plt
+import numpy as np
 from astropy.io import ascii
 from astropy.table import Column, Table, vstack
-from Chandra.Time import DateTime
+from cheta import fetch
 from cxotime import CxoTime
 from kadi import events
-from Ska.engarchive import fetch
-from Ska.Matplotlib import plot_cxctime
+from ska_matplotlib import plot_cxctime
 
 FILE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -66,13 +64,13 @@ def get_obs_table(start, stop):
 
         obs["obsid"] = obsid
         obs["date"] = m.start
-        obs["time"] = DateTime(m.start).secs
+        obs["time"] = CxoTime(m.start).secs
         obs["manvr_angle"] = m.angle
         obs["one_shot"] = m.one_shot
         obs["one_shot_yaw"] = m.one_shot_yaw
         obs["one_shot_pitch"] = m.one_shot_pitch
         obs["dwell_duration"] = (
-            DateTime(m.next_nman_start).secs - DateTime(m.npnt_start).secs
+            CxoTime(m.next_nman_start).secs - CxoTime(m.npnt_start).secs
         )
 
         try:
@@ -82,7 +80,7 @@ def get_obs_table(start, stop):
                 ["AOATTER1", "AOATTER2", "AOATTER3"],
             ):
                 err = fetch.Msid(
-                    err_msid, DateTime(m.npnt_start).secs + 500, m.next_nman_start
+                    err_msid, CxoTime(m.npnt_start).secs + 500, m.next_nman_start
                 )
                 if len(err.times):
                     events.dumps.interval_pad = (0, 300)
@@ -295,7 +293,7 @@ def update_file_data(data_file, start, stop):
 
 def update(datadir, outdir, full_start, recent_start, point_lim=7.5, roll_lim=15):
     data_file = os.path.join(datadir, "data.dat")
-    dat = update_file_data(data_file, full_start, DateTime())
+    dat = update_file_data(data_file, full_start, CxoTime.now())
     recent_data = dat[dat["time"] >= recent_start.secs]
     ref_data = dat[dat["time"] < recent_start.secs]
 
@@ -337,9 +335,9 @@ def main(args=None):
 
     # Set start of time ranges for data
     if opt.recent_start is None:
-        recent_start = DateTime(-60)
+        recent_start = Cxotime.now() - 60 * u.day
     else:
-        recent_start = DateTime(opt.recent_start)
+        recent_start = CxoTime(opt.recent_start)
 
     update(
         outdir=opt.outdir,
