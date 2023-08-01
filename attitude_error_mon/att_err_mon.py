@@ -277,7 +277,6 @@ def att_err_hist(ref_data, recent_data, label=None, min_dwell_time=1000, outdir=
 
 def update_file_data(data_file, start, stop):
     if data_file.exists():
-        print(f"Reading previous data from {data_file}")
         last_data = Table.read(data_file, format="ascii")
         new_data = get_obs_table(last_data[-5]["date"], stop)
         if new_data["date"][0] > last_data["date"][-1]:
