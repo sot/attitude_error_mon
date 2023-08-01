@@ -27,6 +27,11 @@ def get_options():
         help="Date to use as reference for highlighted/recent data,"
         + " default is to highlight last 60 days",
     )
+    parser.add_argument(
+        "--maude",
+        help="Use MAUDE for telemetry",
+        action="store_true",
+    )
     return parser
 
 
@@ -336,6 +341,9 @@ def main(args=None):
         recent_start = CxoTime.now() - 60 * u.day
     else:
         recent_start = CxoTime(opt.recent_start)
+
+    if opt.maude:
+        fetch.data_source.set("maude allow_subset=False")
 
     update(
         outdir=opt.outdir,
