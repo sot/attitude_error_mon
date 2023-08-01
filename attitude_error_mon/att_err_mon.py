@@ -28,9 +28,7 @@ def get_options():
         help="Date to use as reference for highlighted/recent data,"
         + " default is to highlight last 60 days",
     )
-
-    opt = parser.parse_args()
-    return opt
+    return parser
 
 
 def get_obs_table(start, stop):
@@ -330,7 +328,7 @@ def update(datadir, outdir, full_start, recent_start, point_lim=7.5, roll_lim=15
 
 def main(args=None):
     matplotlib.use("Agg")
-    opt = get_options()
+    opt = get_options().parse_args(args)
     if not os.path.exists(opt.outdir):
         os.makedirs(opt.outdir)
 
