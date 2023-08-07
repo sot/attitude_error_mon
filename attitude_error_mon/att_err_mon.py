@@ -15,6 +15,8 @@ from kadi import events
 from ska_matplotlib import plot_cxctime
 
 FILE_DIR = Path(__file__).parent
+ROLL_LIM = 20
+POINT_LIM = 10
 
 
 def get_options():
@@ -191,12 +193,13 @@ def att_err_time_plots(ref_data, recent_data, min_dwell_time=1000, outdir="."):
     d2_str = recent_data["date"][0][0:8]
     d3_str = recent_data["date"][-1][0:8]
 
-    for i, ax, msid in zip(
-        [1, 2], ["roll", "point"], ["abs(aoatter1)", "rss(aoatter2,aoatter3)"]
+    for i, ax, msid, lim in zip(
+        [1, 2],
+        ["roll", "point"],
+        ["abs(aoatter1)", "rss(aoatter2,aoatter3)"],
+        [ROLL_LIM, POINT_LIM]
     ):
-        default_ylims = [0, 1.4]
-        if ax == "roll":
-            default_ylims = [0, 12]
+
         plt.figure(figsize=(5, 3.5))
         plot_cxctime(
             ref_data["time"],
@@ -218,11 +221,7 @@ def att_err_time_plots(ref_data, recent_data, min_dwell_time=1000, outdir="."):
         plt.ylabel(f"{ax} err (arcsec)", fontsize=9)
         plt.title(f"per obs 99th percentile {ax} err\n ({msid})", fontsize=12)
         plt.grid()
-        ylims = plt.ylim()
-        setlims = plt.ylim(
-            np.min([ylims[0], default_ylims[0]]), np.max([ylims[1], default_ylims[1]])
-        )
-        plt.ylim(setlims)
+        plt.ylim([0, lim])
         plt.xticks(fontsize=7)
         plt.tight_layout()
         plt.savefig(outdir / f"{ax}_err_vs_time.png")
@@ -244,10 +243,10 @@ def att_err_hist(ref_data, recent_data, label=None, min_dwell_time=1000, outdir=
         plt.figure(figsize=(5, 3.5))
         if ax == "roll":
             bin_width = 0.25
-            lim = 15
+            lim = ROLL_LIM
         else:
             bin_width = 0.05
-            lim = 7.5
+            lim = POINT_LIM
         bins = np.arange(0, lim + bin_width, bin_width)
         plt.hist(
             ref_data[f"{ax}_err"],
@@ -292,7 +291,7 @@ def update_file_data(data_file, start, stop):
     return data
 
 
-def update(datadir, outdir, full_start, recent_start, point_lim=7.5, roll_lim=15):
+def update(datadir, outdir, full_start, recent_start):
     outdir.mkdir(parents=True, exist_ok=True)
     datadir.mkdir(parents=True, exist_ok=True)
     data_file = datadir / "data.dat"
@@ -310,16 +309,16 @@ def update(datadir, outdir, full_start, recent_start, point_lim=7.5, roll_lim=15
     else:
         comments = {}
 
-    ok = (recent_data["point_err"] < point_lim) | (recent_data["roll_err"] < roll_lim)
+    ok = (recent_data["point_err"] < POINT_LIM) & (recent_data["roll_err"] < ROLL_LIM)
     outliers = recent_data[~ok]
     comments_col = Column(
         data=[comments.get(row["obsid"], "") for row in outliers], name="comment"
     )
     outliers.add_column(comments_col)
-    recent_data = recent_data[ok]
+    #recent_data = recent_data[ok]
 
-    ok = (ref_data["point_err"] < point_lim) | (ref_data["roll_err"] < roll_lim)
-    ref_data = ref_data[ok]
+    ok = (ref_data["point_err"] < POINT_LIM) & (ref_data["roll_err"] < ROLL_LIM)
+    #ref_data = ref_data[ok]
     att_err_time_plots(ref_data, recent_data, outdir=outdir)
     att_err_hist(ref_data, recent_data, outdir=outdir)
 
@@ -328,8 +327,8 @@ def update(datadir, outdir, full_start, recent_start, point_lim=7.5, roll_lim=15
     out_html = template.render(
         outliers=outliers,
         one_shot_start=ref_data["date"][0],
-        roll_lim=roll_lim,
-        point_lim=point_lim,
+        roll_lim=ROLL_LIM,
+        point_lim=POINT_LIM,
     )
     with open(outdir / "index.html", "w") as fh:
         fh.write(out_html)
