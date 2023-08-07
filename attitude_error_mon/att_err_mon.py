@@ -197,9 +197,8 @@ def att_err_time_plots(ref_data, recent_data, min_dwell_time=1000, outdir="."):
         [1, 2],
         ["roll", "point"],
         ["abs(aoatter1)", "rss(aoatter2,aoatter3)"],
-        [ROLL_LIM, POINT_LIM]
+        [ROLL_LIM, POINT_LIM],
     ):
-
         plt.figure(figsize=(5, 3.5))
         plot_cxctime(
             ref_data["time"],
