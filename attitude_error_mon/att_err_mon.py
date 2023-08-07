@@ -315,10 +315,7 @@ def update(datadir, outdir, full_start, recent_start):
         data=[comments.get(row["obsid"], "") for row in outliers], name="comment"
     )
     outliers.add_column(comments_col)
-    #recent_data = recent_data[ok]
 
-    ok = (ref_data["point_err"] < POINT_LIM) & (ref_data["roll_err"] < ROLL_LIM)
-    #ref_data = ref_data[ok]
     att_err_time_plots(ref_data, recent_data, outdir=outdir)
     att_err_hist(ref_data, recent_data, outdir=outdir)
 
