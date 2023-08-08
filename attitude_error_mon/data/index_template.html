@@ -7,20 +7,24 @@
 
   <body>
 <!--#include virtual="/mta/ASPECT/header.html"-->
-    
+
 <h2>One shots and attitude errors</h2
 
-<h3>(Updated 
+<h3>(Updated
 <!--#CONFIG TIMEFMT="%x" --><!--#flastmod file="one_shot_vs_angle.png"-->)
 </h3>
 
 <br />
 
 <h3>One shots from {{ one_shot_start }}</h3>
-<img src="one_shot_vs_angle.png">
+<TABLE>
+<TR><TD><img src="one_shot_vs_angle.png"></TD></TR>
+<TR><TD><img src="one_shot_vs_nmmtime.png"></TD></TR>
+</TABLE>
+
 <h3>Attitude errors (from AOATTER1,2,3) for dwells >= than 1ks.</h3>
 <P>Note that in addition to filtering on dwell duration (>= 1ks) these data have also been filtered to
-remove dumps, tsc moves, and intervals marked as ltt_bads.</P>
+remove dumps, tsc moves, intervals marked as ltt_bads, and points outside the roll/point limits.</P>
 
 <TABLE>
 <TR><TD><img src="roll_err_vs_time.png"></TD><TD><img src="roll_err_hist.png"></TD></TR>
@@ -28,7 +32,7 @@ remove dumps, tsc moves, and intervals marked as ltt_bads.</P>
 </TABLE>
 
 
-<h2>Outlier observations with large roll or pointing errors</h2>
+<h2>Recent outliers roll >= {{roll_lim}} arcsec or pointing >= {{point_lim}} arcsec</h2>
 <table border=1>
   <tr><th>Date</th><th>obsid</th>
     <th>point err<br/>(arcsec)</th>
@@ -43,11 +47,10 @@ remove dumps, tsc moves, and intervals marked as ltt_bads.</P>
   {% endfor %}
 </table>
 
-
 <P>Code to generate these plots at <A HREF="https://github.com/sot/attitude_error_mon">attitude_error_mon</A>.</P>
 
 
-<!--#include virtual="/mta/ASPECT/footer.html"--> 
+<!--#include virtual="/mta/ASPECT/footer.html"-->
 <!--footer end-->
 
   </body>
