@@ -126,7 +126,7 @@ def one_shot_plot(ref_data, recent_data, outdir="."):
     d2_str = recent_data["date"][0][0:8]
     d3_str = recent_data["date"][-1][0:8]
 
-    plt.figure(figsize=(7, 4))
+    plt.figure(figsize=(9, 4))
     plt.plot(
         ref_data["manvr_angle"],
         ref_data["one_shot"],
@@ -145,16 +145,15 @@ def one_shot_plot(ref_data, recent_data, outdir="."):
         label=f"{d2_str} to {d3_str}",
     )
     plt.grid()
-    plt.xlim(-5, 185)
+    plt.xlim(-15, 225)
     plt.ylim(ymin=0)
     plt.ylabel("One Shot (arcsec)")
     plt.xlabel("Manvr Angle (deg)")
     plt.title("One shot size vs. manvr angle", fontsize=12, y=1.05)
     plt.legend(loc="upper left", fontsize=8)
-    plt.tight_layout()
     plt.savefig(outdir / "one_shot_vs_angle.png")
 
-    plt.figure(figsize=(7, 4))
+    plt.figure(figsize=(9, 4))
     plt.plot(
         ref_data["nmm_time"],
         ref_data["one_shot"],
@@ -179,7 +178,6 @@ def one_shot_plot(ref_data, recent_data, outdir="."):
     plt.xlabel("Time in NMM (s)")
     plt.title("One shot size vs. NMM time", fontsize=12, y=1.05)
     plt.legend(loc="upper left", fontsize=8)
-    plt.tight_layout()
     plt.savefig(outdir / "one_shot_vs_nmmtime.png")
 
 
