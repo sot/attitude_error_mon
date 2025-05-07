@@ -36,15 +36,34 @@ def get_options():
     return parser
 
 
-def get_obs_table(start, stop):
+def get_obs_table(start, stop, use_maude=False):
     """
     Make a data table of obsids with one shot magnitudes and att errors
 
-    :param start: start time for dwell range to fetch
-    :param stop: stop time for range
-    :returns: astropy table of observation data
+    Parameters
+    ----------
+    start : CxoTimeLike
+        Start time for the data
+    stop : CxoTimeLike
+        Stop time for the data
+    use_maude : bool
+        Use MAUDE for telemetry, default is to use CXC
+
+    Returns
+    -------
+    Table
+        Table of obsids with one shot magnitudes and 99th percentile att errors
     """
-    manvrs = events.manvrs.filter(start=start, stop=stop)
+
+    # Set up to process
+    if use_maude:
+        manvrs = events.manvrs.filter(start=start, stop=stop)
+        cheta_data_source = "maude allow_subset=False"
+    else:
+        _, atter1_end = fetch.get_time_range("AOATTER1", format="date")
+        manvrs = events.manvrs.filter(start=start, next_nman_start__lte=atter1_end)
+        cheta_data_source = "cxc"
+
     obs_data = []
     last_npnt_stop = None
     for m in manvrs:
@@ -83,9 +102,10 @@ def get_obs_table(start, stop):
                 ["roll_err", "pitch_err", "yaw_err"],
                 ["AOATTER1", "AOATTER2", "AOATTER3"],
             ):
-                err = fetch.Msid(
-                    err_msid, CxoTime(m.npnt_start).secs + 500, m.next_nman_start
-                )
+                with fetch.data_source(cheta_data_source):
+                    err = fetch.Msid(
+                        err_msid, CxoTime(m.npnt_start).secs + 500, m.next_nman_start
+                    )
                 if len(err.times):
                     events.dumps.interval_pad = (0, 300)
                     err.remove_intervals(events.dumps)
@@ -271,10 +291,28 @@ def att_err_hist(ref_data, recent_data, label=None, min_dwell_time=1000, outdir=
         plt.savefig(outdir / f"{ax}_err_hist.png")
 
 
-def update_file_data(data_file, start, stop):
+def update_file_data(data_file, start, stop, use_maude=False):
+    """
+    Update the data file with new data
+
+    Parameters
+    ----------
+    data_file : Path or str
+        Path to the data file
+    start : CxoTimeLike
+        Start time for the data
+    stop : CxoTimeLike
+        Stop time for the data
+    use_maude : bool
+        Use MAUDE for telemetry, default is to use CXC
+    Returns
+    -------
+    Table
+        Table of obsids with one shot magnitudes and 99th percentile att errors
+    """
     if data_file.exists():
         last_data = Table.read(data_file, format="ascii")
-        new_data = get_obs_table(last_data[-5]["date"], stop)
+        new_data = get_obs_table(last_data[-5]["date"], stop, use_maude=use_maude)
         if new_data["date"][0] > last_data["date"][-1]:
             data = vstack([last_data, new_data])
         else:
@@ -282,17 +320,37 @@ def update_file_data(data_file, start, stop):
             data = vstack([last_data[0:idx_old_data], new_data])
         data = data[data["date"] >= start.date]
     else:
-        data = get_obs_table(start, stop)
+        data = get_obs_table(start, stop, use_maude=use_maude)
     data.sort("date")
     data.write(data_file, format="ascii", overwrite=True)
     return data
 
 
-def update(datadir, outdir, full_start, recent_start):
+def update(datadir, outdir, full_start, recent_start, use_maude=False):
+    """
+    Update the attitude error plots
+    Parameters
+    ----------
+    datadir : Path
+        Path to the data directory
+    outdir : Path
+        Path to the output directory
+    full_start : CxoTimeLike
+        Start time for the full data (including earliest plotted data)
+    recent_start : CxoTimeLike
+        Start time for the recent data (which is plotted in red)
+    use_maude : bool
+        Use MAUDE for telemetry, default is to use CXC
+
+    Returns
+    -------
+    None
+    """
+
     outdir.mkdir(parents=True, exist_ok=True)
     datadir.mkdir(parents=True, exist_ok=True)
     data_file = datadir / "data.dat"
-    dat = update_file_data(data_file, full_start, CxoTime.now())
+    dat = update_file_data(data_file, full_start, CxoTime.now(), use_maude=use_maude)
     recent_data = dat[dat["time"] >= recent_start.secs]
     ref_data = dat[dat["time"] < recent_start.secs]
 
@@ -338,14 +396,12 @@ def main(args=None):
     else:
         recent_start = CxoTime(opt.recent_start)
 
-    if opt.maude:
-        fetch.data_source.set("maude allow_subset=False")
-
     update(
         outdir=Path(opt.outdir),
         datadir=Path(opt.datadir),
         full_start=recent_start - 365 * u.day,
         recent_start=recent_start,
+        use_maude=opt.maude,
     )
 
 
