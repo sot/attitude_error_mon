@@ -77,7 +77,7 @@ def get_filtered_telem(start, stop, cheta_data_source="cxc"):
     dither_func_cmds = cmds[ok]
 
     # MUPS checkouts
-    checkouts = events.caps.filter(start="2021:001", title__contains="Hardware Checkout")
+    checkouts = events.caps.filter(title__contains="Hardware Checkout")
 
     # And generic not-npnt intervals
     with fetch.data_source(cheta_data_source):
