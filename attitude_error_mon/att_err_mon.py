@@ -30,15 +30,10 @@ def get_options():
         help="Date to use as reference for highlighted/recent data,"
         " default is to highlight last 60 days",
     )
-    parser.add_argument(
-        "--maude",
-        help="Use MAUDE for telemetry",
-        action="store_true",
-    )
     return parser
 
 
-def get_filtered_telem(start, stop, cheta_data_source="cxc"):
+def get_filtered_telem(start, stop):
     """
     Get filtered telemetry data for attitude errors
 
@@ -48,8 +43,6 @@ def get_filtered_telem(start, stop, cheta_data_source="cxc"):
         Start time for the data
     stop : CxoTimeLike
         Stop time for the data
-    cheta_data_source : str
-        Data source to use for fetching telemetry, default is "cxc"
 
     Returns
     -------
@@ -83,12 +76,11 @@ def get_filtered_telem(start, stop, cheta_data_source="cxc"):
     checkouts = events.caps.filter(title__contains="Hardware Checkout")
 
     # And generic not-npnt intervals
-    with fetch.data_source(cheta_data_source):
-        aopcadmd = fetch.Msid(
-            "AOPCADMD",
-            start,
-            stop,
-        )
+    aopcadmd = fetch.Msid(
+        "AOPCADMD",
+        start,
+        stop,
+    )
     not_npnt_intervals = (
         logical_intervals(aopcadmd.times, aopcadmd.vals != "NPNT")
         if len(aopcadmd.times)
@@ -120,12 +112,11 @@ def get_filtered_telem(start, stop, cheta_data_source="cxc"):
         + mups_checkout_intervals
     )
 
-    with fetch.data_source(cheta_data_source):
-        errs = fetch.Msidset(
-            ["AOATTER1", "AOATTER2", "AOATTER3"],
-            start,
-            stop,
-        )
+    errs = fetch.Msidset(
+        ["AOATTER1", "AOATTER2", "AOATTER3"],
+        start,
+        stop,
+    )
 
     # Set up some more pads
     events.dumps.interval_pad = (0, 300)
@@ -150,7 +141,7 @@ def get_filtered_telem(start, stop, cheta_data_source="cxc"):
     return errs
 
 
-def get_obs_table(start, stop, use_maude=False):  # noqa: PLR0912, PLR0915 too many branches and statements
+def get_obs_table(start, stop):  # noqa: PLR0912, PLR0915 too many branches and statements
     """
     Make a data table of obsids with one shot magnitudes and att errors
 
@@ -160,8 +151,6 @@ def get_obs_table(start, stop, use_maude=False):  # noqa: PLR0912, PLR0915 too m
         Start time for the data
     stop : CxoTimeLike
         Stop time for the data
-    use_maude : bool
-        Use MAUDE for telemetry, default is to use CXC
 
     Returns
     -------
@@ -172,22 +161,14 @@ def get_obs_table(start, stop, use_maude=False):  # noqa: PLR0912, PLR0915 too m
     stop = CxoTime(stop)
 
     # Set up to process
-    if use_maude:
-        manvrs = events.manvrs.filter(
-            kalman_start__gte=start, next_nman_start__lte=stop
-        )
-        cheta_data_source = "maude allow_subset=False"
-    else:
-        # If using CXC, find the available time range and update start/stop if needed
-        atter1_start, atter1_stop = fetch.get_time_range("AOATTER1", format="date")
-        start = max(start, CxoTime(atter1_start))
-        stop = min(stop, CxoTime(atter1_stop))
-        manvrs = events.manvrs.filter(
-            kalman_start__gte=start, next_nman_start__lte=stop
-        )
-        cheta_data_source = "cxc"
 
-    errs = get_filtered_telem(start, stop, cheta_data_source=cheta_data_source)
+    # If using CXC, find the available time range and update start/stop if needed
+    atter1_start, atter1_stop = fetch.get_time_range("AOATTER1", format="date")
+    start = max(start, CxoTime(atter1_start))
+    stop = min(stop, CxoTime(atter1_stop))
+    manvrs = events.manvrs.filter(kalman_start__gte=start, next_nman_start__lte=stop)
+
+    errs = get_filtered_telem(start, stop)
 
     obs_data = []
     last_npnt_stop = None
@@ -424,7 +405,7 @@ def att_err_hist(ref_data, recent_data, min_dwell_time=1000, outdir="."):
         plt.savefig(outdir / f"{ax}_err_hist.png")
 
 
-def update_file_data(data_file, start, stop, use_maude=False):
+def update_file_data(data_file, start, stop):
     """
     Update the data file with new data
 
@@ -436,8 +417,7 @@ def update_file_data(data_file, start, stop, use_maude=False):
         Start time for the data
     stop : CxoTimeLike
         Stop time for the data
-    use_maude : bool
-        Use MAUDE for telemetry, default is to use CXC
+
     Returns
     -------
     Table
@@ -448,7 +428,8 @@ def update_file_data(data_file, start, stop, use_maude=False):
     if data_file.exists():
         last_data = Table.read(data_file, format="ascii")
         new_data = get_obs_table(
-            max(last_data[-5]["date"], start), stop, use_maude=use_maude
+            max(last_data[-5]["date"], start),
+            stop,
         )
         if new_data["date"][0] > last_data["date"][-1]:
             data = vstack([last_data, new_data])
@@ -457,13 +438,13 @@ def update_file_data(data_file, start, stop, use_maude=False):
             data = vstack([last_data[0:idx_old_data], new_data])
         data = data[data["date"] >= start.date]
     else:
-        data = get_obs_table(start, stop, use_maude=use_maude)
+        data = get_obs_table(start, stop)
     data.sort("date")
     data.write(data_file, format="ascii", overwrite=True)
     return data
 
 
-def update(datadir, outdir, full_start, recent_start, use_maude=False):
+def update(datadir, outdir, full_start, recent_start):
     """
     Update the attitude error plots
 
@@ -477,8 +458,6 @@ def update(datadir, outdir, full_start, recent_start, use_maude=False):
         Start time for the full data (including earliest plotted data)
     recent_start : CxoTimeLike
         Start time for the recent data (which is plotted in red)
-    use_maude : bool
-        Use MAUDE for telemetry, default is to use CXC
 
     Returns
     -------
@@ -488,7 +467,7 @@ def update(datadir, outdir, full_start, recent_start, use_maude=False):
     outdir.mkdir(parents=True, exist_ok=True)
     datadir.mkdir(parents=True, exist_ok=True)
     data_file = datadir / "data.dat"
-    dat = update_file_data(data_file, full_start, CxoTime.now(), use_maude=use_maude)
+    dat = update_file_data(data_file, full_start, CxoTime.now())
     recent_data = dat[dat["time"] >= recent_start.secs]
     ref_data = dat[dat["time"] < recent_start.secs]
 
@@ -539,7 +518,6 @@ def main(args=None):
         datadir=Path(opt.datadir),
         full_start=recent_start - 365 * u.day,
         recent_start=recent_start,
-        use_maude=opt.maude,
     )
 
 
