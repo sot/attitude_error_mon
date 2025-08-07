@@ -243,33 +243,33 @@ def get_obs_table(start, stop, use_maude=False):
                     errs[err_msid].times <= interval_stop.secs
                 )
                 all_err[err_name] = {
-                    'times': errs[err_msid].times[ok],
-                    'vals': errs[err_msid].vals[ok],
+                    "times": errs[err_msid].times[ok],
+                    "vals": errs[err_msid].vals[ok],
                 }
 
             # If there are no samples left, that is not an error condition, and the
             # attitude errors should just be counted as 0.
-            if len(all_err["roll_err"]['vals']) == 0:
+            if len(all_err["roll_err"]["vals"]) == 0:
                 obs["roll_err"] = 0
                 obs["point_err"] = 0
                 obs["pitch_err"] = 0
                 obs["yaw_err"] = 0
             else:
                 obs["roll_err"] = (
-                    np.degrees(np.percentile(np.abs(all_err["roll_err"]['vals']), 99))
+                    np.degrees(np.percentile(np.abs(all_err["roll_err"]["vals"]), 99))
                     * 3600
                 )
 
                 point_err = np.sqrt(
-                    (all_err["pitch_err"]['vals'] ** 2)
-                    + (all_err["yaw_err"]['vals'] ** 2)
+                    (all_err["pitch_err"]["vals"] ** 2)
+                    + (all_err["yaw_err"]["vals"] ** 2)
                 )
                 obs["point_err"] = np.degrees(np.percentile(point_err, 99)) * 3600
                 obs["pitch_err"] = (
-                    np.degrees(np.percentile(all_err["pitch_err"]['vals'], 99)) * 3600
+                    np.degrees(np.percentile(all_err["pitch_err"]["vals"], 99)) * 3600
                 )
                 obs["yaw_err"] = (
-                    np.degrees(np.percentile(all_err["yaw_err"]['vals'], 99)) * 3600
+                    np.degrees(np.percentile(all_err["yaw_err"]["vals"], 99)) * 3600
                 )
 
         # If there are issues indexing into the AOATTER data, that's an error condition
