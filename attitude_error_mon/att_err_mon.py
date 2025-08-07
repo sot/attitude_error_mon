@@ -73,7 +73,11 @@ def get_filtered_telem(start, stop, cheta_data_source="cxc"):
     cmds_scs107 = cmds_rmpds_evt[ok2]
 
     # let's get dither enable or disable cmds
-    ok = (cmds["tlmsid"] == "AOENDITH") | (cmds["tlmsid"] == "AOENDITH") | (cmds["type"] == "MP_DITHER")
+    ok = (
+        (cmds["tlmsid"] == "AOENDITH")
+        | (cmds["tlmsid"] == "AOENDITH")
+        | (cmds["type"] == "MP_DITHER")
+    )
     dither_func_cmds = cmds[ok]
 
     # MUPS checkouts
@@ -82,11 +86,15 @@ def get_filtered_telem(start, stop, cheta_data_source="cxc"):
     # And generic not-npnt intervals
     with fetch.data_source(cheta_data_source):
         aopcadmd = fetch.Msid(
-                            "AOPCADMD", start, stop,
-                        )
-    not_npnt_intervals = logical_intervals(
-                aopcadmd.times, aopcadmd.vals != "NPNT"
-            ) if len(aopcadmd.times) else []
+            "AOPCADMD",
+            start,
+            stop,
+        )
+    not_npnt_intervals = (
+        logical_intervals(aopcadmd.times, aopcadmd.vals != "NPNT")
+        if len(aopcadmd.times)
+        else []
+    )
 
     # go through the not_npnt and pad by 500 secs
     not_npnt_intervals = [
@@ -103,18 +111,27 @@ def get_filtered_telem(start, stop, cheta_data_source="cxc"):
         for cmd in dither_func_cmds
     ]
     mups_checkout_intervals = [
-        (CxoTime(checkout.start).secs - 6 * 3600, CxoTime(checkout.start).secs + 6 * 3600)
+        (
+            CxoTime(checkout.start).secs - 6 * 3600,
+            CxoTime(checkout.start).secs + 6 * 3600,
+        )
         for checkout in checkouts
     ]
 
     # Concatenate all intervals
-    remove_intervals = (not_npnt_intervals + scs_107_intervals + dither_func_intervals
-                        + mups_checkout_intervals)
+    remove_intervals = (
+        not_npnt_intervals
+        + scs_107_intervals
+        + dither_func_intervals
+        + mups_checkout_intervals
+    )
 
     with fetch.data_source(cheta_data_source):
-        errs = fetch.Msidset(["AOATTER1", "AOATTER2", "AOATTER3"],
-            start, stop,
-    )
+        errs = fetch.Msidset(
+            ["AOATTER1", "AOATTER2", "AOATTER3"],
+            start,
+            stop,
+        )
 
     # Set up some more pads
     events.dumps.interval_pad = (0, 300)
@@ -162,14 +179,18 @@ def get_obs_table(start, stop, use_maude=False):
 
     # Set up to process
     if use_maude:
-        manvrs = events.manvrs.filter(kalman_start__gte=start, next_nman_start__lte=stop)
+        manvrs = events.manvrs.filter(
+            kalman_start__gte=start, next_nman_start__lte=stop
+        )
         cheta_data_source = "maude allow_subset=False"
     else:
         # If using CXC, find the available time range and update start/stop if needed
         atter1_start, atter1_stop = fetch.get_time_range("AOATTER1", format="date")
         start = max(start, CxoTime(atter1_start))
         stop = min(stop, CxoTime(atter1_stop))
-        manvrs = events.manvrs.filter(kalman_start__gte=start, next_nman_start__lte=stop)
+        manvrs = events.manvrs.filter(
+            kalman_start__gte=start, next_nman_start__lte=stop
+        )
         cheta_data_source = "cxc"
 
     errs = get_filtered_telem(start, stop, cheta_data_source=cheta_data_source)
@@ -218,10 +239,13 @@ def get_obs_table(start, stop, use_maude=False):
                 ["roll_err", "pitch_err", "yaw_err"],
                 ["AOATTER1", "AOATTER2", "AOATTER3"],
             ):
-                ok = ((errs[err_msid].times >= interval_start.secs)
-                          & (errs[err_msid].times <= interval_stop.secs))
-                all_err[err_name] = {'times': errs[err_msid].times[ok],
-                                     'vals': errs[err_msid].vals[ok]}
+                ok = (errs[err_msid].times >= interval_start.secs) & (
+                    errs[err_msid].times <= interval_stop.secs
+                )
+                all_err[err_name] = {
+                    'times': errs[err_msid].times[ok],
+                    'vals': errs[err_msid].vals[ok],
+                }
 
             # If there are no samples left, that is not an error condition, and the
             # attitude errors should just be counted as 0.
@@ -237,12 +261,16 @@ def get_obs_table(start, stop, use_maude=False):
                 )
 
                 point_err = np.sqrt(
-                    (all_err["pitch_err"]['vals'] ** 2) + (all_err["yaw_err"]['vals'] ** 2)
+                    (all_err["pitch_err"]['vals'] ** 2)
+                    + (all_err["yaw_err"]['vals'] ** 2)
                 )
                 obs["point_err"] = np.degrees(np.percentile(point_err, 99)) * 3600
-                obs["pitch_err"] = np.degrees(np.percentile(all_err["pitch_err"]['vals'], 99)) * 3600
-                obs["yaw_err"] = np.degrees(np.percentile(all_err["yaw_err"]['vals'], 99)) * 3600
-
+                obs["pitch_err"] = (
+                    np.degrees(np.percentile(all_err["pitch_err"]['vals'], 99)) * 3600
+                )
+                obs["yaw_err"] = (
+                    np.degrees(np.percentile(all_err["yaw_err"]['vals'], 99)) * 3600
+                )
 
         # If there are issues indexing into the AOATTER data, that's an error condition
         # that should just be captured by a large/bogus value.
@@ -431,8 +459,9 @@ def update_file_data(data_file, start, stop, use_maude=False):
     stop = CxoTime(stop)
     if data_file.exists():
         last_data = Table.read(data_file, format="ascii")
-        new_data = get_obs_table(max(last_data[-5]["date"],
-                                     start), stop, use_maude=use_maude)
+        new_data = get_obs_table(
+            max(last_data[-5]["date"], start), stop, use_maude=use_maude
+        )
         if new_data["date"][0] > last_data["date"][-1]:
             data = vstack([last_data, new_data])
         else:
