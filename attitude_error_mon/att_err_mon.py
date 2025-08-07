@@ -242,14 +242,7 @@ def get_obs_table(start, stop, use_maude=False):  # noqa: PLR0912, PLR0915 too m
                     "vals": errs[err_msid].vals[ok],
                 }
 
-            # If there are no samples left, that is not an error condition, and the
-            # attitude errors should just be counted as 0.
-            if len(all_err["roll_err"]["vals"]) == 0:
-                obs["roll_err"] = 0
-                obs["point_err"] = 0
-                obs["pitch_err"] = 0
-                obs["yaw_err"] = 0
-            else:
+            if len(all_err["roll_err"]["vals"]) >= 500:
                 obs["roll_err"] = (
                     np.degrees(np.percentile(np.abs(all_err["roll_err"]["vals"]), 99))
                     * 3600
