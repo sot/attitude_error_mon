@@ -16,7 +16,6 @@ from cxotime import CxoTime
 from kadi import events
 from ska_matplotlib import plot_cxctime
 
-
 FILE_DIR = Path(__file__).parent
 ROLL_LIM = 20
 POINT_LIM = 10
@@ -29,7 +28,7 @@ def get_options():
     parser.add_argument(
         "--recent-start",
         help="Date to use as reference for highlighted/recent data,"
-        + " default is to highlight last 60 days",
+        " default is to highlight last 60 days",
     )
     parser.add_argument(
         "--maude",
@@ -156,7 +155,7 @@ def get_filtered_telem(start, stop, cheta_data_source="cxc"):
     return errs
 
 
-def get_obs_table(start, stop, use_maude=False):
+def get_obs_table(start, stop, use_maude=False):  # noqa: PLR0912, PLR0915 too many branches and statements
     """
     Make a data table of obsids with one shot magnitudes and att errors
 
@@ -238,6 +237,7 @@ def get_obs_table(start, stop, use_maude=False):
             for err_name, err_msid in zip(
                 ["roll_err", "pitch_err", "yaw_err"],
                 ["AOATTER1", "AOATTER2", "AOATTER3"],
+                strict=False,
             ):
                 ok = (errs[err_msid].times >= interval_start.secs) & (
                     errs[err_msid].times <= interval_stop.secs
@@ -356,11 +356,11 @@ def att_err_time_plots(ref_data, recent_data, min_dwell_time=1000, outdir="."):
     d2_str = recent_data["date"][0][0:8]
     d3_str = recent_data["date"][-1][0:8]
 
-    for i, ax, msid, lim in zip(
-        [1, 2],
+    for ax, msid, lim in zip(
         ["roll", "point"],
         ["abs(aoatter1)", "rss(aoatter2,aoatter3)"],
         [ROLL_LIM, POINT_LIM],
+        strict=False,
     ):
         plt.figure(figsize=(5, 3.5))
         plot_cxctime(
@@ -389,7 +389,7 @@ def att_err_time_plots(ref_data, recent_data, min_dwell_time=1000, outdir="."):
         plt.savefig(outdir / f"{ax}_err_vs_time.png")
 
 
-def att_err_hist(ref_data, recent_data, label=None, min_dwell_time=1000, outdir="."):
+def att_err_hist(ref_data, recent_data, min_dwell_time=1000, outdir="."):
     ref_data = ref_data[ref_data["dwell_duration"] >= min_dwell_time]
     recent_data = recent_data[recent_data["dwell_duration"] >= min_dwell_time]
 
@@ -399,8 +399,8 @@ def att_err_hist(ref_data, recent_data, label=None, min_dwell_time=1000, outdir=
     d2_str = recent_data["date"][0][0:8]
     d3_str = recent_data["date"][-1][0:8]
 
-    for i, ax, msid in zip(
-        [1, 2], ["roll", "point"], ["abs(aoatter1)", "rss(aoatter2, aoatter3)"]
+    for ax, msid in zip(
+        ["roll", "point"], ["abs(aoatter1)", "rss(aoatter2, aoatter3)"], strict=False
     ):
         plt.figure(figsize=(5, 3.5))
         if ax == "roll":
@@ -478,6 +478,7 @@ def update_file_data(data_file, start, stop, use_maude=False):
 def update(datadir, outdir, full_start, recent_start, use_maude=False):
     """
     Update the attitude error plots
+
     Parameters
     ----------
     datadir : Path
