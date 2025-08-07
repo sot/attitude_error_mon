@@ -97,22 +97,17 @@ def get_filtered_telem(start, stop, cheta_data_source="cxc"):
 
     # go through the not_npnt and pad by 500 secs
     not_npnt_intervals = [
-        (CxoTime(interval[0]).secs, CxoTime(interval[1]).secs + 500)
-        for interval in not_npnt_intervals
+        (interval["tstart"], interval["tstop"] + 500) for interval in not_npnt_intervals
     ]
     # make intervals for the others with custom padding
-    scs_107_intervals = [
-        (CxoTime(cmd["date"]).secs, CxoTime(cmd["date"]).secs + 3600)
-        for cmd in cmds_scs107
-    ]
+    scs_107_intervals = [(cmd["time"], cmd["time"] + 3600) for cmd in cmds_scs107]
     dither_func_intervals = [
-        (CxoTime(cmd["date"]).secs, CxoTime(cmd["date"]).secs + 3600)
-        for cmd in dither_func_cmds
+        (cmd["time"], cmd["time"] + 3600) for cmd in dither_func_cmds
     ]
     mups_checkout_intervals = [
         (
-            CxoTime(checkout.start).secs - 6 * 3600,
-            CxoTime(checkout.start).secs + 6 * 3600,
+            checkout.tstart - 6 * 3600,
+            checkout.tstop + 6 * 3600,
         )
         for checkout in checkouts
     ]
