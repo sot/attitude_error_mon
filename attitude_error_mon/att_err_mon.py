@@ -575,7 +575,7 @@ def main(args=None):
     update(
         outdir=Path(opt.outdir),
         datadir=Path(opt.datadir),
-        full_start=recent_start - 3 * 365 * u.day,
+        full_start=recent_start - 365 * u.day,
         recent_start=recent_start,
     )
 
