@@ -19,6 +19,7 @@ from ska_matplotlib import plot_cxctime
 FILE_DIR = Path(__file__).parent
 ROLL_LIM = 20
 POINT_LIM = 10
+PERCENTILE = 90
 
 
 def get_options():
@@ -35,7 +36,26 @@ def get_options():
 
 def get_filtered_telem(start, stop):
     """
-    Get filtered telemetry data for attitude errors
+    Get filtered telemetry data for attitude errors.
+
+    This is intended to get AOATTER1/2/3 data in NPNT also excluding:
+
+    - The first 1ks of each NPNT dwell while things settle
+    - Dumps
+    - TSC moves
+    - Dark cal replicas
+    - Safe suns
+    - Normal suns
+    - LTT bads
+    - SCS-107 commands
+    - Dither enable/disable commands and dither parameter changes
+    - MUPS checkouts
+    - Times when the distance from the earth center is less than 1.5e7 m
+
+    There are pads applied to the intervals for the various event types.
+
+    The point of the filtering is to collect nominal NPNT attitude error data excluding
+    these known disturbances.
 
     Parameters
     ----------
@@ -46,7 +66,7 @@ def get_filtered_telem(start, stop):
 
     Returns
     -------
-    errs : Msidset dict
+    telem : Msidset dict
         Dictionary of filtered telemetry data for AOATTER1, AOATTER2, and AOATTER3
     """
 
@@ -54,6 +74,8 @@ def get_filtered_telem(start, stop):
     stop = CxoTime(stop)
 
     # Get SCS107s
+    # These can include dither transitions and SIM moves which should be
+    # excluded from overall AOATTER trending.
     cmds = kc.get_cmds(start, stop)
     # First get non-load radmon disable commands. This can include such
     # commands from safe mode or NSM as well.
@@ -64,18 +86,31 @@ def get_filtered_telem(start, stop):
     ok2 = cmds_rmpds_evt["event"] == "SCS-107"
     cmds_scs107 = cmds_rmpds_evt[ok2]
 
-    # let's get dither enable or disable cmds
+    # Get dither enable or disable cmds and dither parameter changes.
+    # Dither transitions cause instantaneous large AOATTER values (the difference
+    # from where the spacecraft is in the dither pattern at the transition to where
+    # the new dither pattern defines the position). The instantaneous large values
+    # are not interesting for overall trending.
     ok = (
         (cmds["tlmsid"] == "AOENDITH")
-        | (cmds["tlmsid"] == "AOENDITH")
+        | (cmds["tlmsid"] == "AODSDITH")
         | (cmds["type"] == "MP_DITHER")
     )
     dither_func_cmds = cmds[ok]
 
-    # MUPS checkouts
-    checkouts = events.caps.filter(title__contains="Hardware Checkout")
+    # Remove an hour of data after each SCS-107 and dither command
+    # The instantaneous disturbance when the commanded quaternion changes
+    # at those points will take some time to settle out, depending on where
+    # the spacecraft was in the dither pattern and the amplitude of the dither.
+    # An hour should be sufficient to settle out most disturbances.
+    scs_107_intervals = [(cmd["time"], cmd["time"] + 3600) for cmd in cmds_scs107]
+    dither_func_intervals = [
+        (cmd["time"], cmd["time"] + 3600) for cmd in dither_func_cmds
+    ]
 
-    # And generic not-npnt intervals
+    # And generic not-npnt intervals.
+    # By excluding all non-NPNT times with padding, we should end up with
+    # just a set of NPNT intervals.
     aopcadmd = fetch.Msid(
         "AOPCADMD",
         start,
@@ -86,16 +121,28 @@ def get_filtered_telem(start, stop):
         if len(aopcadmd.times)
         else []
     )
-
-    # go through the not_npnt and pad by 500 secs
+    # Go through the not_npnt and pad to cut off the first 1ks of each dwell
+    # We are not interested in the AOATTER behavior as the Kalman filter
+    # continues to settle after a manvr and 1ks also cuts off the worst of
+    # possible issues with the centroids and dynamic background "burn-in".
     not_npnt_intervals = [
-        (interval["tstart"], interval["tstop"] + 500) for interval in not_npnt_intervals
+        (interval["tstart"], interval["tstop"] + 1000)
+        for interval in not_npnt_intervals
     ]
-    # make intervals for the others with custom padding
-    scs_107_intervals = [(cmd["time"], cmd["time"] + 3600) for cmd in cmds_scs107]
-    dither_func_intervals = [
-        (cmd["time"], cmd["time"] + 3600) for cmd in dither_func_cmds
+
+    # Get distance from earth center and exclude times below 1.5e7 m
+    # that seems to be about the point where we start seeing gravity gradient disturbances
+    dist_sat_earth = fetch.Msid("Dist_SatEarth", start, stop, stat="5min")
+    low_intervals = logical_intervals(dist_sat_earth.times, dist_sat_earth.vals < 1.5e7)
+    low_intervals = [
+        (interval["tstart"], interval["tstop"]) for interval in low_intervals
     ]
+
+    # MUPS checkouts
+    # MUPS checkouts are know to cause attitude disturbances.
+    # The CAP times may not be perfectly aligned with the actual checkout times,
+    # so pad by 6 hours on each end.
+    checkouts = events.caps.filter(title__contains="Hardware Checkout")
     mups_checkout_intervals = [
         (
             checkout.tstart - 6 * 3600,
@@ -104,29 +151,41 @@ def get_filtered_telem(start, stop):
         for checkout in checkouts
     ]
 
-    # Concatenate all intervals
+    # Concatenate all custom intervals
     remove_intervals = (
         not_npnt_intervals
         + scs_107_intervals
         + dither_func_intervals
         + mups_checkout_intervals
+        + low_intervals
     )
 
-    errs = fetch.Msidset(
-        ["AOATTER1", "AOATTER2", "AOATTER3"],
+    telem = fetch.Msidset(
+        ["AOATTER1", "AOATTER2", "AOATTER3", "Dist_SatEarth"],
         start,
         stop,
     )
 
-    # Set up some more pads
-    events.dumps.interval_pad = (0, 300)
-    events.tsc_moves.interval_pad = (15, 300)
-    events.dark_cal_replicas.interval_pad = (360, 360)
-    events.safe_suns.interval_pad = (300, 300)
-    events.normal_suns.interval_pad = (300, 300)
+    # Set up some more custom pads on the kadi events
 
-    for err_msid in errs:
-        err = errs[err_msid]
+    # Dumps are known from telemetry and generally settle within 5 minutes.
+    events.dumps.interval_pad = (0, 300)
+
+    # TSC moves also generally cause disturbances that settle within 5 minutes.
+    # The telemetry can lag a bit in this case, so there's a small pad before as well.
+    events.tsc_moves.interval_pad = (15, 300)
+
+    # Dither is disabled for dark current replicas almost 5 minutes before the
+    # kadi replica event starts, so this uses a pre-pad of 5 minutes.
+    events.dark_cal_replicas.interval_pad = (300, 0)
+
+    # These safe and normal sun events are rare but can have long recovery times
+    # and the data can just be weird then, so use long pads.
+    events.safe_suns.interval_pad = (300, 50000)
+    events.normal_suns.interval_pad = (300, 50000)
+
+    for err_msid in telem:
+        err = telem[err_msid]
         if len(err.times) > 0:
             # Trim using kadi events
             err.remove_intervals(events.dumps)
@@ -135,10 +194,10 @@ def get_filtered_telem(start, stop):
             err.remove_intervals(events.safe_suns)
             err.remove_intervals(events.normal_suns)
             err.remove_intervals(events.ltt_bads)
-            # Trim using the custom intervals created above
+            # Trim also using the custom intervals created above
             err.remove_intervals(remove_intervals)
 
-    return errs
+    return telem
 
 
 def get_obs_table(start, stop):  # noqa: PLR0912, PLR0915 too many branches and statements
@@ -155,14 +214,12 @@ def get_obs_table(start, stop):  # noqa: PLR0912, PLR0915 too many branches and 
     Returns
     -------
     Table
-        Table of obsids with one shot magnitudes and 99th percentile att errors
+        Table of obsids with one shot magnitudes and Nth percentile att errors
     """
     start = CxoTime(start)
     stop = CxoTime(stop)
 
     # Set up to process
-
-    # If using CXC, find the available time range and update start/stop if needed
     atter1_start, atter1_stop = fetch.get_time_range("AOATTER1", format="date")
     start = max(start, CxoTime(atter1_start))
     stop = min(stop, CxoTime(atter1_stop))
@@ -208,46 +265,48 @@ def get_obs_table(start, stop):  # noqa: PLR0912, PLR0915 too many branches and 
             CxoTime(m.next_nman_start).secs - CxoTime(m.npnt_start).secs
         )
 
-        try:
-            all_err = {}
-            for err_name, err_msid in zip(
-                ["roll_err", "pitch_err", "yaw_err"],
-                ["AOATTER1", "AOATTER2", "AOATTER3"],
-                strict=False,
-            ):
-                ok = (errs[err_msid].times >= interval_start.secs) & (
-                    errs[err_msid].times <= interval_stop.secs
+        all_err = {}
+        for err_name, err_msid in zip(
+            ["roll_err", "pitch_err", "yaw_err"],
+            ["AOATTER1", "AOATTER2", "AOATTER3"],
+            strict=True,
+        ):
+            ok = (errs[err_msid].times >= interval_start.secs) & (
+                errs[err_msid].times <= interval_stop.secs
+            )
+            all_err[err_name] = {
+                "times": errs[err_msid].times[ok],
+                "vals": errs[err_msid].vals[ok],
+            }
+        obs["samples"] = len(all_err["roll_err"]["vals"])
+        if obs["samples"] >= 500:
+            ok = (errs["Dist_SatEarth"].times >= interval_start.secs) & (
+                errs["Dist_SatEarth"].times <= interval_stop.secs
+            )
+            obs["dist_sat_earth_m"] = np.mean(errs["Dist_SatEarth"].vals[ok])
+            obs["roll_err"] = (
+                np.degrees(
+                    np.percentile(np.abs(all_err["roll_err"]["vals"]), PERCENTILE)
                 )
-                all_err[err_name] = {
-                    "times": errs[err_msid].times[ok],
-                    "vals": errs[err_msid].vals[ok],
-                }
-
-            if len(all_err["roll_err"]["vals"]) >= 500:
-                obs["roll_err"] = (
-                    np.degrees(np.percentile(np.abs(all_err["roll_err"]["vals"]), 99))
-                    * 3600
-                )
-
-                point_err = np.sqrt(
-                    (all_err["pitch_err"]["vals"] ** 2)
-                    + (all_err["yaw_err"]["vals"] ** 2)
-                )
-                obs["point_err"] = np.degrees(np.percentile(point_err, 99)) * 3600
-                obs["pitch_err"] = (
-                    np.degrees(np.percentile(all_err["pitch_err"]["vals"], 99)) * 3600
-                )
-                obs["yaw_err"] = (
-                    np.degrees(np.percentile(all_err["yaw_err"]["vals"], 99)) * 3600
-                )
-
-        # If there are issues indexing into the AOATTER data, that's an error condition
-        # that should just be captured by a large/bogus value.
-        except IndexError:
+                * 3600
+            )
+            point_err = np.sqrt(
+                (all_err["pitch_err"]["vals"] ** 2) + (all_err["yaw_err"]["vals"] ** 2)
+            )
+            obs["point_err"] = np.degrees(np.percentile(point_err, PERCENTILE)) * 3600
+            obs["pitch_err"] = (
+                np.degrees(np.percentile(all_err["pitch_err"]["vals"], PERCENTILE))
+                * 3600
+            )
+            obs["yaw_err"] = (
+                np.degrees(np.percentile(all_err["yaw_err"]["vals"], PERCENTILE)) * 3600
+            )
+        else:
             obs["point_err"] = 999
             obs["roll_err"] = 999
             obs["pitch_err"] = 999
             obs["yaw_err"] = 999
+            obs["dist_sat_earth_m"] = -1
         obs_data.append(obs)
 
     return Table(obs_data)
@@ -399,7 +458,7 @@ def att_err_hist(ref_data, recent_data, min_dwell_time=1000, outdir="."):
         )
         plt.xlabel(f"{ax} err (arcsec)")
         plt.legend(loc="upper right", fontsize=7)
-        plt.title(f"per obs 99th percentile {ax} err\n({msid})", fontsize=12)
+        plt.title(f"per obs {PERCENTILE}th percentile {ax} err\n({msid})", fontsize=12)
         plt.grid()
         plt.tight_layout()
         plt.savefig(outdir / f"{ax}_err_hist.png")
@@ -421,7 +480,7 @@ def update_file_data(data_file, start, stop):
     Returns
     -------
     Table
-        Table of obsids with one shot magnitudes and 99th percentile att errors
+        Table of obsids with one shot magnitudes and Nth percentile att errors
     """
     start = CxoTime(start)
     stop = CxoTime(stop)
@@ -516,7 +575,7 @@ def main(args=None):
     update(
         outdir=Path(opt.outdir),
         datadir=Path(opt.datadir),
-        full_start=recent_start - 365 * u.day,
+        full_start=recent_start - 3 * 365 * u.day,
         recent_start=recent_start,
     )
 
