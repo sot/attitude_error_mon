@@ -99,7 +99,7 @@ def get_filtered_telem(start, stop):
     dither_func_cmds = cmds[ok]
 
     # Remove an hour of data after each SCS-107 and dither command
-    # The instantaneous disturbance when the commanded quaternion changes
+    # The instantaneous change in AOATTER when the commanded quaternion changes
     # at those points will take some time to settle out, depending on where
     # the spacecraft was in the dither pattern and the amplitude of the dither.
     # An hour should be sufficient to settle out most disturbances.
