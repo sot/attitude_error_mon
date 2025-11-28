@@ -17,8 +17,8 @@ from kadi import events
 from ska_matplotlib import plot_cxctime
 
 FILE_DIR = Path(__file__).parent
-ROLL_LIM = 20
-POINT_LIM = 10
+ROLL_LIM = 10
+POINT_LIM = 4
 PERCENTILE = 90
 
 
@@ -283,7 +283,9 @@ def get_obs_table(start, stop):  # noqa: PLR0912, PLR0915 too many branches and 
             ok = (errs["Dist_SatEarth"].times >= interval_start.secs) & (
                 errs["Dist_SatEarth"].times <= interval_stop.secs
             )
-            obs["dist_sat_earth_m"] = np.mean(errs["Dist_SatEarth"].vals[ok])
+            obs["dist_sat_earth_m"] = (
+                -1 if np.sum(ok) == 0 else np.mean(errs["Dist_SatEarth"].vals[ok])
+            )
             obs["roll_err"] = (
                 np.degrees(
                     np.percentile(np.abs(all_err["roll_err"]["vals"]), PERCENTILE)
@@ -409,7 +411,7 @@ def att_err_time_plots(ref_data, recent_data, min_dwell_time=1000, outdir="."):
         )
         plt.margins(x=0.05, y=0.05)
         plt.ylabel(f"{ax} err (arcsec)", fontsize=9)
-        plt.title(f"per obs 99th percentile {ax} err\n ({msid})", fontsize=12)
+        plt.title(f"per obs {PERCENTILE}th percentile {ax} err\n ({msid})", fontsize=12)
         plt.grid()
         plt.ylim([0, lim])
         plt.xticks(fontsize=7)
@@ -540,7 +542,9 @@ def update(datadir, outdir, full_start, recent_start):
     else:
         comments = {}
 
-    ok = (recent_data["point_err"] < POINT_LIM) & (recent_data["roll_err"] < ROLL_LIM)
+    ok = (
+        (recent_data["point_err"] < POINT_LIM) & (recent_data["roll_err"] < ROLL_LIM)
+    ) | (recent_data["point_err"] == 999)
     outliers = recent_data[~ok]
     comments_col = Column(
         data=[comments.get(row["obsid"], "") for row in outliers], name="comment"
