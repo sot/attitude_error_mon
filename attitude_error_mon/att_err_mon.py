@@ -284,7 +284,7 @@ def get_obs_table(start, stop):  # noqa: PLR0912, PLR0915 too many branches and 
                 errs["Dist_SatEarth"].times <= interval_stop.secs
             )
             obs["dist_sat_earth_m"] = (
-                -1 if np.sum(ok) == 0 else np.mean(errs["Dist_SatEarth"].vals[ok])
+                np.mean(errs["Dist_SatEarth"].vals[ok]) if np.any(ok) else np.nan
             )
             obs["roll_err"] = (
                 np.degrees(
@@ -303,12 +303,6 @@ def get_obs_table(start, stop):  # noqa: PLR0912, PLR0915 too many branches and 
             obs["yaw_err"] = (
                 np.degrees(np.percentile(all_err["yaw_err"]["vals"], PERCENTILE)) * 3600
             )
-        else:
-            obs["point_err"] = 999
-            obs["roll_err"] = 999
-            obs["pitch_err"] = 999
-            obs["yaw_err"] = 999
-            obs["dist_sat_earth_m"] = -1
         obs_data.append(obs)
 
     return Table(obs_data)
