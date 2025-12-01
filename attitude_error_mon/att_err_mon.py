@@ -139,7 +139,8 @@ def get_filtered_telem(start, stop):
     ]
 
     # MUPS checkouts
-    # MUPS checkouts are know to cause attitude disturbances.
+    # MUPS checkouts are know to cause attitude disturbances and they are not
+    # contained in the kadi dumps events.
     # The CAP times may not be perfectly aligned with the actual checkout times,
     # so pad by 6 hours on each end.
     checkouts = events.caps.filter(title__contains="Hardware Checkout")
@@ -536,9 +537,7 @@ def update(datadir, outdir, full_start, recent_start):
     else:
         comments = {}
 
-    ok = (
-        (recent_data["point_err"] < POINT_LIM) & (recent_data["roll_err"] < ROLL_LIM)
-    ) | (recent_data["point_err"] == 999)
+    ok = (recent_data["point_err"] < POINT_LIM) & (recent_data["roll_err"] < ROLL_LIM)
     outliers = recent_data[~ok]
     comments_col = Column(
         data=[comments.get(row["obsid"], "") for row in outliers], name="comment"
