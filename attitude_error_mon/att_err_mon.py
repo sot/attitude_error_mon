@@ -436,7 +436,7 @@ def att_err_hist(ref_data, recent_data, min_dwell_time=1000, outdir="."):
             lim = POINT_LIM
         bins = np.arange(0, lim + bin_width, bin_width)
         plt.hist(
-            ref_data[f"{ax}_err"],
+            ref_data[f"{ax}_err"].compressed(),
             bins=bins,
             log=True,
             density=True,
@@ -445,7 +445,7 @@ def att_err_hist(ref_data, recent_data, min_dwell_time=1000, outdir="."):
             label=f"{d0_str} to {d1_str}",
         )
         plt.hist(
-            recent_data[f"{ax}_err"],
+            recent_data[f"{ax}_err"].compressed(),
             bins=bins,
             log=True,
             density=True,
