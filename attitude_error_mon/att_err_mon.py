@@ -142,12 +142,12 @@ def get_filtered_telem(start, stop):
     # MUPS checkouts are know to cause attitude disturbances and they are not
     # contained in the kadi dumps events.
     # The CAP times may not be perfectly aligned with the actual checkout times,
-    # so pad by 6 hours on each end.
+    # so pad by 2 hours on each end.
     checkouts = events.caps.filter(title__contains="Hardware Checkout")
     mups_checkout_intervals = [
         (
-            checkout.tstart - 6 * 3600,
-            checkout.tstop + 6 * 3600,
+            checkout.tstart - 2 * 3600,
+            checkout.tstop + 2 * 3600,
         )
         for checkout in checkouts
     ]
