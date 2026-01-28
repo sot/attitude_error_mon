@@ -24,13 +24,14 @@
 
 <h3>Attitude errors (from AOATTER1,2,3) for dwells >= than 1ks.</h3>
 <P>Note that in addition to filtering on dwell duration (>= 1ks) these data have also been filtered to
-remove dumps, tsc moves, intervals marked as ltt_bads, and points outside the roll/point limits.</P>
+remove the first 1ks of each dwell, dumps, tsc moves, dark current calibrations, dither changes,
+safe mode and normal sun periods, MUPS checkouts, intervals with gravity gradient disturbances,
+intervals marked as ltt_bads, and points outside the roll/point limits.</P>
 
 <TABLE>
 <TR><TD><img src="roll_err_vs_time.png"></TD><TD><img src="roll_err_hist.png"></TD></TR>
 <TR><TD><img src="point_err_vs_time.png"></TD><TD><img src="point_err_hist.png"></TD></TR>
 </TABLE>
-
 
 <h2>Recent outliers roll >= {{roll_lim}} arcsec or pointing >= {{point_lim}} arcsec</h2>
 <table border=1>
